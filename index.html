@@ -271,6 +271,7 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   adNeedName:'请先输入菜名',adBadUrl:'网址格式不对',adFetching:'正在尝试抓取…',
   adCorsFail:'该网站不允许跨域抓取，请复制页面文字粘贴导入 📋',adFetched:'已抓到页面文字，请检查解析结果',
   adNeedData:'至少需要解析出1种食材和1个步骤',adSaved:'新菜已保存 🎉',
+  adUnparsed:n=>`⚠️ ${n} 行未识别（不影响保存，可整理后重新粘贴）：`,
   delDish:'🗑 删除这道菜',delConfirm:'删除这道菜？相关菜单安排也会移除',delDone:'已删除',refSource:'📄 原文链接',
   cloudStatusOff:'⚪ 本地演示模式 · 数据仅存本机（点击查看说明）',
   cloudNeedLogin:'🟠 未登录 · 点击登录，两人即可跨设备同步',
@@ -309,6 +310,7 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   adNeedName:'先に料理名を入力してください',adBadUrl:'URLの形式が正しくありません',adFetching:'取得を試しています…',
   adCorsFail:'このサイトは直接取得できません。文字をコピーして貼り付けてください 📋',adFetched:'ページの文字を取得しました。解析結果を確認してください',
   adNeedData:'材料1品と手順1個以上が必要です',adSaved:'保存しました 🎉',
+  adUnparsed:n=>`⚠️ ${n} 行を認識できませんでした（保存には影響しません）：`,
   delDish:'🗑 この料理を削除',delConfirm:'削除しますか？献立からも外れます',delDone:'削除しました',refSource:'📄 元ページ',
   cloudStatusOff:'⚪ ローカルデモモード · データはこの端末のみ（タップで詳細）',
   cloudNeedLogin:'🟠 未ログイン · タップしてログインすると2人で同期できます',
@@ -362,49 +364,102 @@ function canonIng(n){return ING_JA_REV[n]||n;}
 function allDishes(){ return DISHES.concat(state.customDishes||[]); }
 function getDish(id){ return allDishes().find(d=>d.id===id); }
 
-// ---- 菜谱文本解析器（支持下厨房/Cookpad等常见粘贴格式） ----
+// ---- 菜谱文本解析器 v2（面向真实粘贴场景：下厨房/Cookpad/博客等） ----
 const CN_NUM={'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'半':0.5};
-function parseQty(s){
-  if(CN_NUM[s]!=null) return CN_NUM[s];
-  if(s.includes('/')){const[a,b]=s.split('/');return parseFloat(a)/parseFloat(b);}
-  const v=parseFloat(s); return isNaN(v)?1:v;
+function parseQty(sq){
+  sq=String(sq).trim();
+  if(CN_NUM[sq]!=null) return CN_NUM[sq];
+  if(sq.includes('/')){const[a,b]=sq.split('/');const v=parseFloat(a)/parseFloat(b);return isNaN(v)?1:v;}
+  const v=parseFloat(sq); return isNaN(v)?1:v;
 }
+const UNIT_LIST=['千克','公斤','毫升','大さじ','小さじ','大匙','小匙','茶匙','汤匙','カップ','パック','切れ','かけ','tbsp','tsp','cup','克','个','個','根','块','勺','杯','条','片','枚','罐','缶','瓣','张','颗','只','本','把','袋','包','盒','瓶','株','束','丁','尾','匹','玉','合','斤','两','磅','滴','kg','ml','cc','g','l','L'];
+const UNIT_RE=UNIT_LIST.map(u=>u.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+const QTY_RE='[\\d一二两三四五六七八九十半]+(?:[\\.\\/][\\d]+)?';
+const APPROX_RE='(适量|少许|少量|少々|適量|お好みで|ひとつまみ|一つまみ|按需|随意|依个人口味)';
 function normUnit(u){
-  if(u==='克'||u==='G')return 'g';
-  if(u==='毫升'||u==='ML')return 'ml';
-  if(u==='大さじ'||u==='小さじ')return '勺';
-  if(u==='個')return '个'; if(u==='枚')return '片'; if(u==='本')return '根'; if(u==='缶')return '罐';
-  return u;
+  const m={'克':'g','千克':'kg','公斤':'kg','毫升':'ml','cc':'ml','L':'l','大匙':'勺','小匙':'勺','大さじ':'勺','小さじ':'勺','茶匙':'勺','汤匙':'勺','tbsp':'勺','tsp':'勺','個':'个','枚':'片','本':'根','缶':'罐','カップ':'杯','cup':'杯','玉':'个','切れ':'块','かけ':'瓣','パック':'包'};
+  return m[u]||u;
+}
+// 全角→半角等归一
+function normRecipeText(str){
+  return String(str||'')
+    .replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .replace(/：/g,':').replace(/．/g,'.').replace(/（/g,'(').replace(/）/g,')');
+}
+// 解析单个食材候选片段；inIngSection=true时接受纯名称
+function parseIngItem(raw,inIngSection){
+  let t=String(raw).trim()
+    .replace(/^[-*・•●○◎▪‣＊※>＞\s]+/,'')
+    .replace(/…+|·{2,}|\.{3,}/g,' ')
+    .replace(/\((?:约|大约|目安)?\)/g,'')
+    .replace(/\s+/g,' ').trim();
+  if(!t||t.length>40)return null;
+  let m;
+  // 「醤油 大さじ2」型：量词在数字前
+  m=t.match(new RegExp('^(.{1,20}?)[\\s:]*[(]?(大さじ|小さじ|大匙|小匙|汤匙|茶匙)\\s*('+QTY_RE+')[)]?$'));
+  if(m&&m[1].trim())return {n:m[1].trim(),q:parseQty(m[3]),u:'勺'};
+  // 「鸡蛋 3个」「鸡蛋3」「卵 2個」型（单位可省略）
+  m=t.match(new RegExp('^(.{1,20}?)[\\s:]*('+QTY_RE+')\\s*('+UNIT_RE+')?\\s*(?:左右|くらい|ほど|程度)?$'));
+  if(m&&m[1].trim()&&!/^\d+$/.test(m[1].trim()))return {n:m[1].trim(),q:parseQty(m[2]),u:normUnit(m[3]||'份')};
+  // 「2个鸡蛋」「300g牛肉」型：数量在前
+  m=t.match(new RegExp('^('+QTY_RE+')\\s*('+UNIT_RE+')\\s*(?:的)?([^\\d]{1,20}?)$'));
+  if(m&&m[3].trim())return {n:m[3].trim(),q:parseQty(m[1]),u:normUnit(m[2])};
+  // 「盐 适量」型
+  m=t.match(new RegExp('^(.{1,20}?)[\\s:]*[(]?'+APPROX_RE+'[)]?$'));
+  if(m&&m[1].trim())return {n:m[1].trim(),q:1,u:'份'};
+  // 明确的食材区内：纯名称也接受（用户只列了名字）
+  if(inIngSection&&/^[^\d]{1,15}$/.test(t)&&!/[。.!?！？]/.test(t))return {n:t,q:1,u:'份'};
+  return null;
 }
 function parseRecipeText(text){
-  const lines=String(text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  const ings=[],steps=[];
+  const lines=normRecipeText(text).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const ings=[],steps=[],unparsed=[];
   let mode='auto';
-  const ingHeader=/^[【\[（(]?(用料|材料|食材|配料|ingredients?)/i;
-  const stepHeader=/^[【\[（(]?(做法|步骤|烹饪步骤|制作方法|作り方|手順|instructions?|directions?)/i;
-  const unitRe='(克|毫升|个|個|根|块|勺|杯|条|片|枚|罐|缶|瓣|张|颗|只|本|把|袋|包|盒|合|[gG]|ml|ML|[lL])';
-  for(const line of lines){
-    if(ingHeader.test(line)&&line.length<12){mode='ing';continue;}
-    if(stepHeader.test(line)&&line.length<12){mode='step';continue;}
-    const numbered=line.match(/^(?:第?\s*\d+\s*[\.、步）)]|[①②③④⑤⑥⑦⑧⑨⑩]|STEP\s*\d+[:：]?)\s*(.+)/i);
-    if(mode!=='step'){
-      // 「名称 数量单位」如: 猪肉 300克 / 土豆 2个 / トマト 2個
-      let m=line.match(new RegExp('^([^\\d①-⑩]{1,15}?)[\\s:：·…]*([\\d一二两三四五六七八九十半]+(?:[\\.\\/]\\d+)?)\\s*'+unitRe+'\\s*$'));
-      if(m){ings.push({n:m[1].trim(),q:parseQty(m[2]),u:normUnit(m[3])});continue;}
-      // 日式「醤油 大さじ2」：单位在数字前
-      m=line.match(/^([^\d]{1,15}?)[\s:：·]*[（(]?(大さじ|小さじ)\s*([\d\.\/]+)/);
-      if(m){ings.push({n:m[1].trim(),q:parseQty(m[3]),u:'勺'});continue;}
-      // 「盐 适量」
-      m=line.match(/^([^\d]{1,12}?)[\s:：·]*[（(]?(适量|少许|少々|適量|お好みで)[）)]?$/);
-      if(m){ings.push({n:m[1].trim(),q:1,u:'份'});continue;}
+  const ingHeader=/^[【\[(]?\s*(用料|食材|材料|配料|主料|辅料|调料|調味料|ingredients?)\s*[】\])]?\s*(\(.{0,12}\))?\s*:?\s*/i;
+  const stepHeader=/^[【\[(]?\s*(做法|步骤|烹饪步骤|制作方法|制作步骤|作り方|手順|instructions?|directions?|steps?)\s*[】\])]?\s*:?\s*/i;
+  const splitRe=/[、，,;；]|\s{2,}|\t/;
+  for(const line0 of lines){
+    let line=line0;
+    if(stepHeader.test(line)){
+      mode='step';
+      const rest=line.replace(stepHeader,'').trim();
+      if(rest.length>3)steps.push(rest);
+      continue;
+    }
+    const ih=line.match(ingHeader);
+    if(ih){mode='ing';line=line.replace(ingHeader,'').trim();if(!line)continue;}
+    const numbered=line.match(/^(?:第?\s*\d+\s*[.、步）)]|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫]|step\s*\d+[:.]?)\s*(.+)/i);
+    if(mode==='ing'){
+      const stripped=(numbered?numbered[1]:line).trim();
+      stripped.split(splitRe).map(x=>x.trim()).filter(Boolean).forEach(p=>{
+        const it=parseIngItem(p,true);
+        if(it)ings.push(it);else unparsed.push(p);
+      });
+      continue;
     }
     if(numbered){steps.push(numbered[1].trim());mode='step';continue;}
-    if(mode==='step'&&line.length>3){steps.push(line);continue;}
-    if(mode==='auto'&&line.length>=10){steps.push(line);}
+    if(mode==='step'){if(line.length>3)steps.push(line);else unparsed.push(line);continue;}
+    // auto模式：整行是食材列表 or 步骤
+    const parts=line.split(splitRe).map(x=>x.trim()).filter(Boolean);
+    const items=parts.map(p=>parseIngItem(p,false));
+    const okCnt=items.filter(Boolean).length;
+    if(okCnt&&okCnt*2>=parts.length){
+      items.forEach((it,i)=>{if(it)ings.push(it);else unparsed.push(parts[i]);});
+      continue;
+    }
+    if(line.length>=10){steps.push(line);continue;}
+    unparsed.push(line);
   }
-  return {ings,steps};
+  // 同名同单位合并
+  const merged=[];
+  ings.forEach(i=>{
+    const ex=merged.find(x=>x.n===i.n&&x.u===i.u);
+    if(ex)ex.q+=i.q;else merged.push(i);
+  });
+  return {ings:merged,steps,unparsed};
 }
 
+// ---- 核心计算（评分/需求/购物清单/推荐） ----
 function avgRating(id){
   const a=state.ratings.me[id], b=state.ratings.partner[id];
   const vals=[a,b].filter(v=>v!=null);
@@ -703,7 +758,11 @@ function renderPairing(){
         <button class="btn ghost" onclick="clearCloudData()">${tr('clearCloud')}</button>
       </div></div>`;
   }
-  $('pairing').innerHTML=`<div class="detail-inner"><button class="detail-back" onclick="closePairing()">${tr('back')}</button>${body}</div>`;
+  $('pairing').innerHTML=`<div class="detail-inner">
+    <div class="flex" style="justify-content:space-between;margin-bottom:4px">
+      <button class="detail-back" onclick="closePairing()">${tr('back')}</button>
+      <button class="detail-back" onclick="toggleLang()">${tr('langBtn')}</button>
+    </div>${body}</div>`;
 }
 
 function resetDemo(){
@@ -725,9 +784,18 @@ function toast(msg,isSync){
 }
 
 function toggleLang(){
-  state.lang=state.lang==='zh'?'ja':'zh';
+  const langs=Object.keys(T); // 语言包列表：新增语言（如en）只需给T增加一个包
+  state.lang=langs[(langs.indexOf(state.lang)+1)%langs.length];
   saveState();
   renderAll();
+  ['pairing','adddish'].forEach(ov=>{
+    if($(ov).classList.contains('open')){
+      const keep={};
+      ['auth-email','hh-code','ad-name','ad-url','ad-text'].forEach(id=>{const el=$(id);if(el&&el.value)keep[id]=el.value;});
+      if(ov==='pairing')renderPairing();else openAddDish();
+      Object.keys(keep).forEach(id=>{const el=$(id);if(el)el.value=keep[id];});
+    }
+  });
 }
 
 function switchUser(u){
@@ -941,7 +1009,10 @@ function renderSuggest(){
 function openAddDish(){
   const cuisines=['中餐','日餐','韩餐','西餐','其他'];
   $('adddish').innerHTML=`<div class="detail-inner">
-    <button class="detail-back" onclick="closeAddDish()">${tr('back')}</button>
+    <div class="flex" style="justify-content:space-between;margin-bottom:4px">
+      <button class="detail-back" onclick="closeAddDish()">${tr('back')}</button>
+      <button class="detail-back" onclick="toggleLang()">${tr('langBtn')}</button>
+    </div>
     <div class="card"><h3>${tr('addDishBtn')}</h3>
       <div class="flex" style="margin-bottom:8px">
         <input type="text" id="ad-name" placeholder="${tr('adNamePh')}" class="grow" style="min-width:0">
@@ -1003,12 +1074,15 @@ async function importFromUrl(){
   }catch(e){ toast(tr('adCorsFail')); }
 }
 function previewParse(showToast){
-  const {ings,steps}=parseRecipeText($('ad-text').value);
+  const {ings,steps,unparsed}=parseRecipeText($('ad-text').value);
   let html='';
   if(ings.length||steps.length){
     html=`<b>${T[state.lang].adParsed(ings.length,steps.length)}</b>`;
     if(ings.length) html+=`<br>${tr('adParsedIng')}: ${ings.map(i=>`${i.n} ${i.q}${i.u}`).join('、')}`;
     if(steps.length) html+=`<br>${tr('adParsedStep')}: ${steps.map((s,i)=>(i+1)+'. '+s.slice(0,18)).join(' / ').slice(0,200)}`;
+  }
+  if(unparsed&&unparsed.length){
+    html+=`<br><span style="color:var(--amber)">${T[state.lang].adUnparsed(unparsed.length)} ${unparsed.slice(0,5).join(' | ').slice(0,120)}</span>`;
   }
   $('ad-preview').innerHTML=html;
   return {ings,steps};
