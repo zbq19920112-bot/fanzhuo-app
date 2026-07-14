@@ -280,7 +280,9 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   cloudTitle:'☁️ 我们的小家',
   cloudNotConfigured:'尚未配置 Supabase 密钥，当前为本地演示模式（数据仅存这台设备）。部署者请按 README 把密钥填入 config.js 后重新发布。',
   authHint:'无需密码：输入邮箱，点邮件里的登录链接即完成登录',authEmailPh:'输入你的邮箱',authSend:'发送登录链接',
-  authSent:'登录链接已发到邮箱，请打开邮件点击链接（回到本页自动登录）',authErr:'发送失败，请检查邮箱地址',
+  authSent:'邮件已发送！两种方式任选其一完成登录：',authErr:'发送失败，请检查邮箱地址',
+  authWayLink:'① 在本浏览器中打开邮件里的登录链接',authWayCode:'② 或直接输入邮件里的6位验证码（推荐，不怕换浏览器）',
+  authCodePh:'6位验证码',authVerify:'验证登录',authCodeErr:'验证码不对或已过期，请重发',authResend:'重新发送',
   hhCreate:'创建我们的小家',hhJoinPh:'输入TA给你的邀请码',hhJoin:'加入',
   hhInvite:'把这个邀请码告诉TA，让TA登录后输入：',hhMembers:n=>`成员 ${n}/2`,
   partnerJoined:'TA已加入 💑 两人数据实时同步中',partnerNot:'TA还没加入，把邀请码发给TA吧',
@@ -319,7 +321,9 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   cloudTitle:'☁️ ふたりのおうち',
   cloudNotConfigured:'Supabaseキーが未設定のため、ローカルデモモードで動作中です（データはこの端末のみ）。READMEに従って config.js を設定してください。',
   authHint:'パスワード不要：メールを入力し、届いたリンクをタップするだけでログイン',authEmailPh:'メールアドレスを入力',authSend:'ログインリンクを送信',
-  authSent:'ログインリンクを送信しました。メールのリンクを開いてください（このページに戻ると自動ログイン）',authErr:'送信に失敗しました。メールアドレスを確認してください',
+  authSent:'メールを送信しました！どちらかの方法でログインしてください：',authErr:'送信に失敗しました。メールアドレスを確認してください',
+  authWayLink:'① このブラウザでメール内のリンクを開く',authWayCode:'② またはメール内の6桁コードを入力（ブラウザが変わってもOK・推奨）',
+  authCodePh:'6桁コード',authVerify:'ログイン',authCodeErr:'コードが正しくないか期限切れです。再送信してください',authResend:'再送信',
   hhCreate:'ふたりのおうちを作成',hhJoinPh:'相手からもらった招待コードを入力',hhJoin:'参加',
   hhInvite:'この招待コードを相手に伝えて、ログイン後に入力してもらってください：',hhMembers:n=>`メンバー ${n}/2`,
   partnerJoined:'相手が参加しました 💑 リアルタイム同期中',partnerNot:'相手はまだ参加していません。招待コードを送りましょう',
@@ -700,6 +704,15 @@ async function authSendLink(){
   if(error){toast(tr('authErr'));return;}
   cloud.sentTo=email;renderPairing();
 }
+async function authVerifyCode(){
+  const token=$('auth-code').value.trim();
+  if(!/^\d{6}$/.test(token)){toast(tr('authCodeErr'));return;}
+  const sb=cloudClient();
+  const {data,error}=await sb.auth.verifyOtp({email:cloud.sentTo,token,type:'email'});
+  if(error||!data||!data.session){toast(tr('authCodeErr'));return;}
+  cloud.session=data.session;cloud.myUid=data.session.user.id;cloud.sentTo=null;
+  await afterAuth();
+}
 async function hhCreate(){
   const sb=cloudClient();
   const {error}=await sb.rpc('create_household');
@@ -736,7 +749,13 @@ function renderPairing(){
     body=`<div class="card"><h3>${tr('cloudTitle')}</h3><p class="muted">${tr('cloudNotConfigured')}</p></div>`;
   }else if(!cloud.session){
     body=`<div class="card"><h3>${tr('cloudTitle')}</h3>
-      ${cloud.sentTo?`<p style="font-size:14px;margin:8px 0">📮 ${tr('authSent')}</p><p class="muted">${cloud.sentTo}</p>`
+      ${cloud.sentTo?`<p style="font-size:14px;margin:8px 0">📮 ${tr('authSent')}</p>
+      <p class="muted">${cloud.sentTo} · <span class="clickable" style="text-decoration:underline" onclick="cloud.sentTo=null;renderPairing()">${tr('authResend')}</span></p>
+      <p class="muted" style="margin-top:10px">${tr('authWayLink')}</p>
+      <p class="muted" style="margin-top:6px">${tr('authWayCode')}</p>
+      <div class="flex" style="margin-top:8px">
+        <input type="text" id="auth-code" inputmode="numeric" maxlength="6" placeholder="${tr('authCodePh')}" class="grow" style="min-width:0;letter-spacing:4px;text-align:center">
+        <button class="btn" onclick="authVerifyCode()">${tr('authVerify')}</button></div>`
       :`<p class="muted" style="margin-bottom:8px">${tr('authHint')}</p>
       <div class="flex"><input type="text" id="auth-email" placeholder="${tr('authEmailPh')}" class="grow" style="min-width:0">
       <button class="btn" onclick="authSendLink()">${tr('authSend')}</button></div>`}</div>`;
