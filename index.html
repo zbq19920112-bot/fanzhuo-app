@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>两口子的饭桌 · Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+  :root{
+    --bg:#faf7f2; --card:#ffffff; --ink:#3d3229; --muted:#9a8f82;
+    --accent:#e8734a; --accent-soft:#fdeee7; --green:#4a9d6b; --green-soft:#e7f5ec;
+    --amber:#d99a2b; --amber-soft:#faf3e0; --line:#eee7dd; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang SC","Hiragino Sans","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding-bottom:90px}
+  header{padding:16px 16px 12px;text-align:center;position:relative}
+  header h1{font-size:20px;letter-spacing:1px}
+  header p{font-size:12px;color:var(--muted);margin-top:4px}
+  .lang-btn{position:absolute;right:14px;top:14px;border:1px solid var(--line);background:var(--card);border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer}
+  .reset-btn{position:absolute;left:14px;top:14px;border:1px solid var(--line);background:var(--card);border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--muted)}
+  .userbar{display:flex;justify-content:center;gap:8px;margin-top:10px}
+  .userbar button{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 16px;font-size:13px;cursor:pointer}
+  .userbar button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .sync-hint{text-align:center;font-size:11px;color:var(--muted);margin-top:8px}
+  main{max-width:520px;margin:0 auto;padding:0 14px}
+  .tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);z-index:10}
+  .tabs button{flex:1;padding:10px 2px 14px;border:none;background:none;font-size:11px;color:var(--muted);cursor:pointer;line-height:1.3}
+  .tabs button .ico{display:block;font-size:20px;margin-bottom:2px}
+  .tabs button.active{color:var(--accent);font-weight:600}
+  .page{display:none;animation:fade .2s}
+  .page.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+  .card h3{font-size:14px;margin-bottom:10px}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--accent-soft);color:var(--accent);margin-right:4px}
+  .tag.green{background:var(--green-soft);color:var(--green)}
+  .tag.amber{background:var(--amber-soft);color:var(--amber)}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:none}
+  select,input[type=text],input[type=number]{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;background:#fff;color:var(--ink)}
+  .btn{border:none;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;background:var(--accent);color:#fff}
+  .btn.ghost{background:var(--accent-soft);color:var(--accent)}
+  .btn.small{padding:4px 10px;font-size:12px}
+  .stars{cursor:pointer;user-select:none;letter-spacing:2px}
+  .stars .off{opacity:.25}
+  .meal-slot{background:var(--bg);border-radius:10px;padding:8px 10px;margin-bottom:6px}
+  .meal-slot .slot-title{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .dish-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:3px 10px;font-size:12px;margin:2px 4px 2px 0}
+  .dish-chip .rm{cursor:pointer;color:var(--muted)}
+  .dish-chip.ready{border-color:var(--green);background:var(--green-soft)}
+  .daynav{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px}
+  .daynav button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer}
+  .daynav button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .check{width:20px;height:20px;border:2px solid var(--line);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#fff;flex-shrink:0}
+  .check.on{background:var(--green);border-color:var(--green)}
+  .strike{text-decoration:line-through;color:var(--muted)}
+  .muted{color:var(--muted);font-size:12px}
+  .flex{display:flex;gap:8px;align-items:center}
+  .grow{flex:1}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:24px 0}
+  .cuisine-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .cuisine-filter button{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:4px 12px;font-size:12px;cursor:pointer}
+  .cuisine-filter button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .badge-missing{font-size:11px;color:var(--amber)}
+  .photo-hint{border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--muted);font-size:12px;margin-bottom:10px;cursor:pointer}
+  .detail-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;overflow-y:auto;padding:14px;animation:fade .2s}
+  .detail-overlay.open{display:block}
+  .detail-inner{max-width:520px;margin:0 auto;padding-bottom:40px}
+  .detail-back{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:6px 14px;font-size:13px;cursor:pointer;margin-bottom:12px}
+  .detail-head{text-align:center;margin-bottom:14px}
+  .detail-head .big{font-size:44px}
+  .detail-head h2{font-size:20px;margin-top:4px}
+  .steps-ol{padding-left:6px;counter-reset:step}
+  .steps-ol li{list-style:none;display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;line-height:1.6}
+  .steps-ol li:last-child{border-bottom:none}
+  .steps-ol li::before{counter-increment:step;content:counter(step);flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:2px}
+  .ref-link{display:inline-block;font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--accent-soft);background:var(--accent-soft);border-radius:14px;padding:5px 12px;margin:4px 6px 0 0}
+  .clickable{cursor:pointer}
+  .hidden{display:none !important}
+  .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:99}
+  .toast.show{opacity:1}
+  .toast.sync{background:var(--green)}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="reset-btn" id="btn-reset" onclick="resetDemo()"></button>
+  <button class="lang-btn" onclick="toggleLang()" id="btn-lang">🇯🇵 日本語</button>
+  <h1 id="h-title"></h1>
+  <p id="h-sub"></p>
+  <div class="userbar">
+    <button id="u-me" class="active" onclick="switchUser('me')"></button>
+    <button id="u-partner" onclick="switchUser('partner')"></button>
+  </div>
+  <p class="sync-hint clickable" id="h-sync" onclick="openPairing()"></p>
+</header>
+
+<main>
+  <div id="page-plan" class="page active"></div>
+  <div id="page-dishes" class="page"></div>
+  <div id="page-fridge" class="page"></div>
+  <div id="page-shopping" class="page"></div>
+  <div id="page-suggest" class="page"></div>
+</main>
+
+<nav class="tabs">
+  <button id="tab-plan" class="active" onclick="switchTab('plan')"><span class="ico">📅</span><span class="lbl"></span></button>
+  <button id="tab-suggest" onclick="switchTab('suggest')"><span class="ico">💡</span><span class="lbl"></span></button>
+  <button id="tab-shopping" onclick="switchTab('shopping')"><span class="ico">🛒</span><span class="lbl"></span></button>
+  <button id="tab-fridge" onclick="switchTab('fridge')"><span class="ico">🧊</span><span class="lbl"></span></button>
+  <button id="tab-dishes" onclick="switchTab('dishes')"><span class="ico">📖</span><span class="lbl"></span></button>
+</nav>
+
+<div id="detail" class="detail-overlay"></div>
+<div id="adddish" class="detail-overlay"></div>
+<div id="pairing" class="detail-overlay"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ================= CORE LOGIC START ================= */
+
+// ---- 菜谱库（中/日/韩/西）；name为内部主键，ja为日语显示名 ----
+const DISHES = [
+  // ---- 中餐 ----
+  {id:'d1', name:'番茄炒蛋', ja:'トマトと卵の炒め物', cuisine:'中餐', emoji:'🍅', ingredients:[{n:'番茄',q:2,u:'个'},{n:'鸡蛋',q:3,u:'个'},{n:'葱',q:1,u:'根'}],
+    steps:['鸡蛋加少许盐打散，番茄切滚刀块','热油滑炒鸡蛋至刚凝固，盛出','余油炒番茄至出汁，加糖和盐调味','倒回鸡蛋翻匀，撒葱花出锅'],
+    stepsJa:['卵は塩少々を加えて溶き、トマトは乱切りにする','熱した油で卵を半熟に炒めて一度取り出す','トマトを炒めて汁気を出し、砂糖と塩で調味','卵を戻してさっと混ぜ、ねぎを散らす']},
+  {id:'d2', name:'麻婆豆腐', ja:'麻婆豆腐', cuisine:'中餐', emoji:'🌶️', ingredients:[{n:'豆腐',q:1,u:'块'},{n:'猪肉末',q:150,u:'g'},{n:'豆瓣酱',q:1,u:'勺'},{n:'葱',q:1,u:'根'}],
+    steps:['豆腐切块，淡盐水焯1分钟捞出','炒肉末至变色，下豆瓣酱炒出红油','加水和豆腐，中火煮3分钟','水淀粉勾芡，撒葱花和花椒粉'],
+    stepsJa:['豆腐は角切りにして塩水で1分下茹でする','ひき肉を炒め、豆板醤を加えて香りを出す','水と豆腐を加えて中火で3分煮る','水溶き片栗粉でとろみをつけ、ねぎと花椒をふる']},
+  {id:'d3', name:'清蒸鲈鱼', ja:'スズキの姿蒸し', cuisine:'中餐', emoji:'🐟', ingredients:[{n:'鲈鱼',q:1,u:'条'},{n:'姜',q:1,u:'块'},{n:'葱',q:2,u:'根'},{n:'蒸鱼豉油',q:2,u:'勺'}],
+    steps:['鱼身两面划刀，铺姜片葱段','水开后上锅大火蒸8分钟','倒掉蒸汁，换新葱丝，淋蒸鱼豉油','浇一勺冒烟热油激出香味'],
+    stepsJa:['魚の両面に切り込みを入れ、生姜とねぎをのせる','沸騰した蒸し器で強火8分蒸す','蒸し汁を捨て、新しいねぎに替えて醤油だれをかける','煙が出るほど熱した油をかけて香りを立たせる']},
+  {id:'d4', name:'皮蛋瘦肉粥', ja:'ピータン粥', cuisine:'中餐', emoji:'🥣', ingredients:[{n:'大米',q:1,u:'杯'},{n:'皮蛋',q:2,u:'个'},{n:'猪里脊',q:100,u:'g'},{n:'姜',q:1,u:'块'}],
+    steps:['大米加少许油盐拌匀腌20分钟','水开下米，中火煮30分钟至米粒开花','下腌好的肉丝、皮蛋丁和姜丝煮5分钟','调味后撒葱花与白胡椒'],
+    stepsJa:['米に油と塩少々をまぶして20分置く','沸騰した湯に米を入れ、中火で30分煮る','下味した豚肉・ピータン・生姜を加えて5分','塩で味を調え、ねぎと白こしょうをふる']},
+  {id:'d13', name:'红烧肉', ja:'紅焼肉（豚バラの甘辛煮込み）', cuisine:'中餐', emoji:'🥩', ingredients:[{n:'五花肉',q:500,u:'g'},{n:'冰糖',q:30,u:'g'},{n:'酱油',q:3,u:'勺'},{n:'料酒',q:2,u:'勺'},{n:'姜',q:1,u:'块'}],
+    steps:['五花肉切块，冷水下锅焯水','小火炒冰糖至琥珀色，下肉块裹上糖色','加料酒、酱油、姜和热水没过肉','小火炖1小时后大火收汁'],
+    stepsJa:['豚バラ肉を角切りにし、水から下茹でする','氷砂糖を弱火で溶かしカラメル色にし、肉に絡める','料理酒・醤油・生姜・熱湯をひたひたに加える','弱火で1時間煮て、最後に強火で煮詰める']},
+  {id:'d14', name:'宫保鸡丁', ja:'宮保鶏丁（鶏とピーナッツの炒め）', cuisine:'中餐', emoji:'🥜', ingredients:[{n:'鸡胸肉',q:300,u:'g'},{n:'花生米',q:50,u:'g'},{n:'干辣椒',q:8,u:'个'},{n:'葱',q:2,u:'根'},{n:'醋',q:2,u:'勺'},{n:'糖',q:1,u:'勺'}],
+    steps:['鸡肉切丁腌10分钟，花生米炸脆备用','糖、醋、酱油调成碗汁','爆香干辣椒，下鸡丁大火炒至变色','倒碗汁，加花生和葱段翻匀'],
+    stepsJa:['鶏肉は角切りにして下味10分、ピーナッツは揚げる','砂糖・酢・醤油を合わせてタレを作る','乾燥唐辛子を炒め、鶏肉を強火で炒める','タレを回し入れ、ピーナッツとねぎを絡める']},
+  {id:'d15', name:'鱼香肉丝', ja:'魚香肉絲（細切り肉の甘酢炒め）', cuisine:'中餐', emoji:'🫙', ingredients:[{n:'猪里脊',q:200,u:'g'},{n:'木耳',q:50,u:'g'},{n:'胡萝卜',q:0.5,u:'根'},{n:'青椒',q:1,u:'个'},{n:'豆瓣酱',q:1,u:'勺'},{n:'醋',q:2,u:'勺'}],
+    steps:['肉切丝上浆，木耳胡萝卜青椒切丝','糖、醋、酱油、淀粉调鱼香汁','滑炒肉丝盛出，下豆瓣酱炒香','下配菜回肉丝，倒汁大火翻匀'],
+    stepsJa:['豚肉は細切りにして下味、野菜も細切りにする','砂糖・酢・醤油・片栗粉で合わせダレを作る','肉を炒めて取り出し、豆板醤を炒めて香りを出す','野菜と肉を合わせ、タレを入れて強火で絡める']},
+  {id:'d16', name:'青椒土豆丝', ja:'じゃがいもとピーマンの細切り炒め', cuisine:'中餐', emoji:'🥔', ingredients:[{n:'土豆',q:2,u:'个'},{n:'青椒',q:1,u:'个'},{n:'干辣椒',q:3,u:'个'},{n:'醋',q:1,u:'勺'}],
+    steps:['土豆切细丝，清水泡去淀粉','热油爆香干辣椒','大火快炒土豆丝2分钟保持脆感','加青椒丝、醋和盐翻匀出锅'],
+    stepsJa:['じゃがいもは細切りにして水にさらす','熱した油で乾燥唐辛子を炒める','じゃがいもを強火で2分、シャキッと炒める','ピーマン・酢・塩を加えてさっと混ぜる']},
+  {id:'d17', name:'可乐鸡翅', ja:'手羽先のコーラ煮', cuisine:'中餐', emoji:'🍗', ingredients:[{n:'鸡翅',q:8,u:'个'},{n:'可乐',q:330,u:'ml'},{n:'姜',q:1,u:'块'},{n:'酱油',q:2,u:'勺'}],
+    steps:['鸡翅两面划刀，焯水去腥','少油煎至两面金黄','倒入可乐、酱油和姜片','中火煮15分钟收汁至浓稠'],
+    stepsJa:['手羽先に切り込みを入れ、下茹でする','少量の油で両面をこんがり焼く','コーラ・醤油・生姜を加える','中火で15分、照りが出るまで煮詰める']},
+  // ---- 日餐 ----
+  {id:'d5', name:'亲子丼', ja:'親子丼', cuisine:'日餐', emoji:'🍗', ingredients:[{n:'鸡腿肉',q:200,u:'g'},{n:'鸡蛋',q:2,u:'个'},{n:'洋葱',q:1,u:'个'},{n:'大米',q:1,u:'杯'},{n:'味淋',q:2,u:'勺'}],
+    steps:['洋葱切丝，鸡腿肉切一口大小','锅中加味淋、酱油和水，煮洋葱和鸡肉至熟','淋入蛋液，半熟时关火加盖焖30秒','连汁盖在热米饭上'],
+    stepsJa:['玉ねぎは薄切り、鶏もも肉は一口大に切る','みりん・醤油・水で玉ねぎと鶏肉を煮る','溶き卵を回し入れ、半熟で火を止め30秒蒸らす','煮汁ごと熱いご飯にのせる']},
+  {id:'d6', name:'日式咖喱饭', ja:'カレーライス', cuisine:'日餐', emoji:'🍛', ingredients:[{n:'咖喱块',q:4,u:'块'},{n:'土豆',q:2,u:'个'},{n:'胡萝卜',q:1,u:'根'},{n:'洋葱',q:1,u:'个'},{n:'鸡腿肉',q:250,u:'g'},{n:'大米',q:2,u:'杯'}],
+    steps:['鸡肉和蔬菜切块，炒至洋葱透明','加水没过食材，煮15分钟','关火放咖喱块搅至溶化，再小火煮5分钟','浇在米饭上'],
+    stepsJa:['鶏肉と野菜を切り、玉ねぎが透明になるまで炒める','水をひたひたに加えて15分煮る','火を止めてルーを溶かし、弱火でさらに5分','ご飯にかける']},
+  {id:'d7', name:'味噌汤', ja:'味噌汁', cuisine:'日餐', emoji:'🍜', ingredients:[{n:'味噌',q:2,u:'勺'},{n:'豆腐',q:0.5,u:'块'},{n:'裙带菜',q:5,u:'g'}],
+    steps:['裙带菜泡发，豆腐切小丁','高汤或清水煮开，下豆腐煮2分钟','转小火，味噌用汤化开后倒回','放裙带菜，煮沸前关火'],
+    stepsJa:['わかめは水で戻し、豆腐はさいの目に切る','だし汁を沸かし、豆腐を2分煮る','弱火にし、味噌を溶き入れる','わかめを加え、沸騰直前で火を止める']},
+  {id:'d18', name:'日式土豆炖牛肉', ja:'肉じゃが', cuisine:'日餐', emoji:'🥘', ingredients:[{n:'牛肉片',q:200,u:'g'},{n:'土豆',q:3,u:'个'},{n:'胡萝卜',q:1,u:'根'},{n:'洋葱',q:1,u:'个'},{n:'味淋',q:2,u:'勺'},{n:'酱油',q:3,u:'勺'}],
+    steps:['土豆胡萝卜切块，洋葱切瓣','炒牛肉片至变色，下蔬菜同炒','加水、味淋、酱油和糖，煮15分钟','关火焖10分钟更入味'],
+    stepsJa:['じゃがいも・にんじんは乱切り、玉ねぎはくし切り','牛肉を炒めて色が変わったら野菜を加える','水・みりん・醤油・砂糖で15分煮る','火を止めて10分置き、味を含ませる']},
+  {id:'d19', name:'姜烧猪肉', ja:'豚の生姜焼き', cuisine:'日餐', emoji:'🐷', ingredients:[{n:'猪里脊',q:300,u:'g'},{n:'姜',q:1,u:'块'},{n:'洋葱',q:0.5,u:'个'},{n:'味淋',q:2,u:'勺'},{n:'酱油',q:2,u:'勺'}],
+    steps:['姜磨泥，与味淋、酱油调成酱汁','肉片中火煎至微焦','下洋葱丝炒软','倒入酱汁裹匀，配卷心菜丝'],
+    stepsJa:['生姜をすりおろし、みりん・醤油と合わせる','豚肉を中火で焼き色がつくまで焼く','玉ねぎを加えてしんなりするまで炒める','タレを絡め、千切りキャベツを添える']},
+  {id:'d20', name:'日式炸鸡块', ja:'鶏の唐揚げ', cuisine:'日餐', emoji:'🍖', ingredients:[{n:'鸡腿肉',q:400,u:'g'},{n:'姜',q:1,u:'块'},{n:'大蒜',q:2,u:'瓣'},{n:'酱油',q:2,u:'勺'},{n:'淀粉',q:50,u:'g'}],
+    steps:['鸡肉切块，用姜蒜酱油腌30分钟','均匀裹上淀粉','170度炸4分钟捞出沥油','升温至190度复炸1分钟至酥脆'],
+    stepsJa:['鶏肉を一口大に切り、生姜・にんにく・醤油で30分漬ける','片栗粉をまんべんなくまぶす','170℃の油で4分揚げて取り出す','190℃に上げて1分二度揚げしてカラッと仕上げる']},
+  {id:'d21', name:'牛肉盖饭', ja:'牛丼', cuisine:'日餐', emoji:'🐮', ingredients:[{n:'牛肉片',q:300,u:'g'},{n:'洋葱',q:1,u:'个'},{n:'大米',q:2,u:'杯'},{n:'味淋',q:3,u:'勺'},{n:'酱油',q:3,u:'勺'}],
+    steps:['洋葱切丝，用味淋、酱油和水煮软','下牛肉片煮至变色，撇去浮沫','小火煮5分钟入味','盖在米饭上，可配红姜'],
+    stepsJa:['玉ねぎを薄切りにし、みりん・醤油・水で煮る','牛肉を加えて色が変わるまで煮て、アクを取る','弱火で5分煮て味を含ませる','ご飯にのせ、紅生姜を添える']},
+  {id:'d22', name:'厚蛋烧', ja:'玉子焼き', cuisine:'日餐', emoji:'🍥', ingredients:[{n:'鸡蛋',q:4,u:'个'},{n:'糖',q:1,u:'勺'},{n:'味淋',q:1,u:'勺'}],
+    steps:['蛋液加糖和味淋打匀，过筛更细腻','玉子烧锅刷油，倒入薄薄一层蛋液','半熟时从一端卷起，推至锅边','重复倒蛋液卷起数次，成型后切段'],
+    stepsJa:['卵に砂糖とみりんを加えて溶き、濾しておく','卵焼き器に油をひき、薄く卵液を流す','半熟のうちに端から巻き、奥に寄せる','卵液を足しながら数回巻き、切り分ける']},
+  {id:'d23', name:'日式汉堡排', ja:'ハンバーグ', cuisine:'日餐', emoji:'🍔', ingredients:[{n:'牛肉末',q:200,u:'g'},{n:'猪肉末',q:100,u:'g'},{n:'洋葱',q:0.5,u:'个'},{n:'鸡蛋',q:1,u:'个'},{n:'面包糠',q:30,u:'g'}],
+    steps:['洋葱末炒软放凉','所有材料加盐混合，摔打出粘性','整成饼状，中火煎两面上色','加盖小火焖熟，用煎汁调酱'],
+    stepsJa:['玉ねぎのみじん切りを炒めて冷ます','材料と塩を混ぜ、粘りが出るまでこねる','小判型にまとめ、中火で両面を焼く','蓋をして弱火で蒸し焼きにし、肉汁でソースを作る']},
+  // ---- 韩餐 ----
+  {id:'d8', name:'韩式部队锅', ja:'プデチゲ', cuisine:'韩餐', emoji:'🍲', ingredients:[{n:'午餐肉',q:1,u:'罐'},{n:'泡菜',q:200,u:'g'},{n:'年糕',q:150,u:'g'},{n:'拉面饼',q:1,u:'块'},{n:'芝士片',q:2,u:'片'}],
+    steps:['泡菜下锅炒香垫底','码入午餐肉片、年糕','加高汤和辣酱煮开5分钟','下拉面饼和芝士片再煮2分钟'],
+    stepsJa:['キムチを炒めて鍋底に敷く','スパムとトッポギ餅を並べる','スープとコチュジャンを加えて5分煮る','麺とチーズをのせてさらに2分']},
+  {id:'d9', name:'石锅拌饭', ja:'ビビンバ', cuisine:'韩餐', emoji:'🍳', ingredients:[{n:'大米',q:1,u:'杯'},{n:'菠菜',q:100,u:'g'},{n:'胡萝卜',q:0.5,u:'根'},{n:'豆芽',q:100,u:'g'},{n:'鸡蛋',q:1,u:'个'},{n:'韩式辣酱',q:1,u:'勺'}],
+    steps:['蔬菜分别焯水，用盐和香油调味','石锅抹香油，铺入米饭中火烤出锅巴','码上蔬菜和煎蛋','加辣酱，上桌拌匀'],
+    stepsJa:['野菜はそれぞれ茹でて、塩とごま油で和える','石鍋にごま油を塗り、ご飯を入れておこげを作る','ナムルと目玉焼きをのせる','コチュジャンを添え、混ぜて食べる']},
+  {id:'d24', name:'韩式泡菜汤', ja:'キムチチゲ', cuisine:'韩餐', emoji:'🍲', ingredients:[{n:'泡菜',q:300,u:'g'},{n:'五花肉',q:150,u:'g'},{n:'豆腐',q:1,u:'块'},{n:'葱',q:1,u:'根'}],
+    steps:['五花肉片下锅炒出油脂','加泡菜和泡菜汁炒香','加水煮10分钟','放豆腐块和葱段再煮5分钟'],
+    stepsJa:['豚バラ肉を炒めて脂を出す','キムチと漬け汁を加えて炒める','水を加えて10分煮る','豆腐とねぎを入れてさらに5分']},
+  {id:'d25', name:'韩式大酱汤', ja:'テンジャンチゲ', cuisine:'韩餐', emoji:'🥘', ingredients:[{n:'大酱',q:2,u:'勺'},{n:'豆腐',q:1,u:'块'},{n:'西葫芦',q:0.5,u:'个'},{n:'土豆',q:1,u:'个'},{n:'葱',q:1,u:'根'}],
+    steps:['清水或淘米水中化开大酱','下土豆和西葫芦煮8分钟','放豆腐煮5分钟','撒葱段和辣椒圈即可'],
+    stepsJa:['水（または米のとぎ汁）にテンジャンを溶く','じゃがいもとズッキーニを8分煮る','豆腐を加えて5分煮る','ねぎと唐辛子を散らして完成']},
+  {id:'d26', name:'辣炒年糕', ja:'トッポギ', cuisine:'韩餐', emoji:'🍢', ingredients:[{n:'年糕',q:300,u:'g'},{n:'鱼饼',q:2,u:'片'},{n:'韩式辣酱',q:2,u:'勺'},{n:'糖',q:1,u:'勺'},{n:'葱',q:1,u:'根'}],
+    steps:['年糕温水泡软','水中加辣酱和糖煮开','下年糕和鱼饼中火煮至酱汁浓稠','撒葱段和芝麻'],
+    stepsJa:['トッポギ餅をぬるま湯で戻す','水にコチュジャンと砂糖を入れて沸かす','餅とさつま揚げを入れ、とろみが出るまで煮る','ねぎとごまを散らす']},
+  {id:'d27', name:'海鲜葱饼', ja:'海鮮チヂミ', cuisine:'韩餐', emoji:'🥞', ingredients:[{n:'面粉',q:150,u:'g'},{n:'鸡蛋',q:2,u:'个'},{n:'葱',q:4,u:'根'},{n:'鱿鱼',q:100,u:'g'},{n:'虾仁',q:100,u:'g'}],
+    steps:['面粉、鸡蛋加水调成面糊','拌入葱段和海鲜','平底锅多油，煎至两面金黄酥脆','配醋酱油蘸汁'],
+    stepsJa:['小麦粉と卵に水を加えて生地を作る','ねぎと海鮮を混ぜ込む','多めの油で両面をカリッと焼く','酢醤油のタレを添える']},
+  {id:'d28', name:'紫菜包饭', ja:'キンパ', cuisine:'韩餐', emoji:'🍙', ingredients:[{n:'大米',q:2,u:'杯'},{n:'紫菜',q:2,u:'张'},{n:'火腿',q:100,u:'g'},{n:'黄瓜',q:1,u:'根'},{n:'胡萝卜',q:1,u:'根'},{n:'鸡蛋',q:2,u:'个'}],
+    steps:['米饭拌香油和盐','蛋皮、火腿、黄瓜、胡萝卜切长条','紫菜铺饭码料，用竹帘卷紧','表面刷香油，切段装盘'],
+    stepsJa:['ご飯にごま油と塩を混ぜる','卵焼き・ハム・きゅうり・にんじんを細長く切る','海苔にご飯と具をのせ、巻きすで巻く','表面にごま油を塗り、切り分ける']},
+  {id:'d29', name:'韩式辣炒猪肉', ja:'チェユクポックム', cuisine:'韩餐', emoji:'🔥', ingredients:[{n:'五花肉',q:300,u:'g'},{n:'洋葱',q:1,u:'个'},{n:'韩式辣酱',q:2,u:'勺'},{n:'姜',q:1,u:'块'}],
+    steps:['肉片用辣酱、姜蒜腌20分钟','大火炒肉至边缘微焦','下洋葱丝炒软','撒葱丝芝麻，配生菜包食'],
+    stepsJa:['豚肉をコチュジャン・生姜・にんにくで20分漬ける','強火で肉の縁がカリッとするまで炒める','玉ねぎを加えてしんなり炒める','ねぎとごまを散らし、サンチュで包んで食べる']},
+  {id:'d30', name:'韩式杂菜', ja:'チャプチェ', cuisine:'韩餐', emoji:'🍜', ingredients:[{n:'韩式粉丝',q:200,u:'g'},{n:'菠菜',q:100,u:'g'},{n:'胡萝卜',q:0.5,u:'根'},{n:'洋葱',q:0.5,u:'个'},{n:'酱油',q:2,u:'勺'},{n:'糖',q:1,u:'勺'}],
+    steps:['粉丝煮软过冷水，剪短','蔬菜切丝分别炒熟','酱油、糖、香油拌入粉丝','全部混合翻匀，撒芝麻'],
+    stepsJa:['春雨を茹でて冷水にとり、食べやすく切る','野菜は細切りにしてそれぞれ炒める','醤油・砂糖・ごま油を春雨に和える','全体を混ぜ合わせ、ごまをふる']},
+  // ---- 西餐 ----
+  {id:'d10', name:'奶油蘑菇意面', ja:'きのこクリームパスタ', cuisine:'西餐', emoji:'🍝', ingredients:[{n:'意面',q:200,u:'g'},{n:'蘑菇',q:150,u:'g'},{n:'淡奶油',q:100,u:'ml'},{n:'大蒜',q:2,u:'瓣'},{n:'帕玛森芝士',q:20,u:'g'}],
+    steps:['意面盐水煮至八分熟，留一杯面汤','黄油炒香蒜片，下蘑菇炒至上色','倒淡奶油小火煮至微稠','拌入意面和面汤，撒芝士黑胡椒'],
+    stepsJa:['パスタを塩水で固めに茹で、茹で汁を取っておく','バターでにんにくを炒め、きのこに焼き色をつける','生クリームを加えて弱火で軽く煮詰める','パスタと茹で汁を絡め、チーズと黒こしょうをふる']},
+  {id:'d11', name:'香煎三文鱼', ja:'サーモンのソテー', cuisine:'西餐', emoji:'🐠', ingredients:[{n:'三文鱼',q:2,u:'块'},{n:'柠檬',q:0.5,u:'个'},{n:'芦笋',q:6,u:'根'},{n:'黄油',q:20,u:'g'}],
+    steps:['鱼身擦干，两面撒盐和黑胡椒','皮朝下中火煎3分钟至酥脆','翻面加黄油再煎2分钟，用油淋鱼身','同锅煎芦笋，挤柠檬汁上桌'],
+    stepsJa:['サーモンの水気を拭き、塩こしょうをふる','皮目を下にして中火で3分、カリッと焼く','裏返してバターを加え2分、油をかけながら焼く','同じフライパンでアスパラを焼き、レモンを絞る']},
+  {id:'d12', name:'牛油果吐司', ja:'アボカドトースト', cuisine:'西餐', emoji:'🥑', ingredients:[{n:'吐司',q:2,u:'片'},{n:'牛油果',q:1,u:'个'},{n:'鸡蛋',q:2,u:'个'},{n:'柠檬',q:0.25,u:'个'}],
+    steps:['吐司烤至金黄酥脆','牛油果压泥，加柠檬汁和盐','煮6分半溏心蛋或做水波蛋','抹酱放蛋，撒黑胡椒和辣椒碎'],
+    stepsJa:['食パンをカリッとトーストする','アボカドを潰し、レモン汁と塩を混ぜる','6分半の半熟卵かポーチドエッグを作る','パンに塗って卵をのせ、黒こしょうをふる']},
+  {id:'d31', name:'番茄肉酱意面', ja:'ボロネーゼ', cuisine:'西餐', emoji:'🍝', ingredients:[{n:'意面',q:200,u:'g'},{n:'牛肉末',q:250,u:'g'},{n:'番茄',q:2,u:'个'},{n:'洋葱',q:1,u:'个'},{n:'大蒜',q:2,u:'瓣'}],
+    steps:['洋葱蒜末炒香，下肉末炒散至焦香','加番茄丁小火煮20分钟成浓酱','意面煮熟沥干','拌入肉酱，撒芝士'],
+    stepsJa:['玉ねぎとにんにくを炒め、ひき肉を加えて炒める','トマトを加えて弱火で20分、ソース状に煮る','パスタを茹でて湯を切る','ソースを絡め、チーズをふる']},
+  {id:'d32', name:'凯撒沙拉', ja:'シーザーサラダ', cuisine:'西餐', emoji:'🥗', ingredients:[{n:'生菜',q:1,u:'颗'},{n:'吐司',q:1,u:'片'},{n:'帕玛森芝士',q:20,u:'g'},{n:'鸡蛋',q:1,u:'个'},{n:'凯撒酱',q:3,u:'勺'}],
+    steps:['吐司切丁，烤箱烤成面包脆','生菜撕块，冰水泡脆沥干','做一颗溏心蛋','淋凯撒酱拌匀，撒芝士和面包脆'],
+    stepsJa:['食パンを角切りにしてクルトンを作る','レタスをちぎり、冷水でパリッとさせる','半熟卵を作る','ドレッシングで和え、チーズとクルトンを散らす']},
+  {id:'d33', name:'蒜香黄油虾', ja:'ガーリックシュリンプ', cuisine:'西餐', emoji:'🦐', ingredients:[{n:'虾仁',q:300,u:'g'},{n:'大蒜',q:4,u:'瓣'},{n:'黄油',q:30,u:'g'},{n:'柠檬',q:0.5,u:'个'}],
+    steps:['虾仁擦干，撒盐和黑胡椒','黄油小火化开，炒香蒜末','转大火下虾仁，两面各煎1分钟','挤柠檬汁，撒欧芹碎'],
+    stepsJa:['エビの水気を拭き、塩こしょうをふる','バターを溶かし、にんにくを弱火で炒める','強火にしてエビを両面1分ずつ焼く','レモンを絞り、パセリを散らす']},
+  {id:'d34', name:'香煎牛排', ja:'ステーキ', cuisine:'西餐', emoji:'🥩', ingredients:[{n:'牛排',q:2,u:'块'},{n:'黄油',q:20,u:'g'},{n:'大蒜',q:2,u:'瓣'},{n:'芦笋',q:6,u:'根'}],
+    steps:['牛排提前30分钟回温，擦干撒足盐','大火热锅，每面煎90秒出焦壳','下黄油大蒜，倾锅用油反复淋面','静置5分钟锁住肉汁再切'],
+    stepsJa:['ステーキを室温に30分置き、水気を拭いて塩をふる','強火で熱したフライパンで両面90秒ずつ焼く','バターとにんにくを加え、油をかけながら焼く','5分休ませて肉汁を落ち着かせてから切る']},
+  {id:'d35', name:'法式吐司', ja:'フレンチトースト', cuisine:'西餐', emoji:'🍞', ingredients:[{n:'吐司',q:4,u:'片'},{n:'鸡蛋',q:2,u:'个'},{n:'牛奶',q:100,u:'ml'},{n:'糖',q:2,u:'勺'},{n:'黄油',q:20,u:'g'}],
+    steps:['鸡蛋、牛奶、糖打匀成蛋奶液','吐司两面浸泡至吸透','黄油小火煎至两面金黄','淋蜂蜜或撒糖粉'],
+    stepsJa:['卵・牛乳・砂糖を混ぜて卵液を作る','食パンを両面しっかり浸す','バターで弱火、両面をきつね色に焼く','はちみつか粉砂糖をかける']},
+  {id:'d36', name:'奶油蘑菇汤', ja:'マッシュルームのポタージュ', cuisine:'西餐', emoji:'🍲', ingredients:[{n:'蘑菇',q:300,u:'g'},{n:'淡奶油',q:100,u:'ml'},{n:'洋葱',q:0.5,u:'个'},{n:'黄油',q:20,u:'g'},{n:'面粉',q:2,u:'勺'}],
+    steps:['黄油炒香洋葱和蘑菇片','撒面粉炒匀去生粉味','加高汤煮10分钟，搅拌机打成泥','倒回锅中加奶油，调味即可'],
+    stepsJa:['バターで玉ねぎとマッシュルームを炒める','小麦粉をふり入れて粉気がなくなるまで炒める','スープを加えて10分煮て、ミキサーにかける','鍋に戻して生クリームを加え、味を調える']},
+];
+
+// ---- 食材/单位 日语对照（内部主键始终用中文） ----
+const ING_JA={'番茄':'トマト','鸡蛋':'卵','葱':'ねぎ','豆腐':'豆腐','猪肉末':'豚ひき肉','豆瓣酱':'豆板醤','鲈鱼':'スズキ','姜':'生姜','蒸鱼豉油':'蒸し魚醤油','大米':'米','皮蛋':'ピータン','猪里脊':'豚ヒレ肉','鸡腿肉':'鶏もも肉','洋葱':'玉ねぎ','味淋':'みりん','咖喱块':'カレールー','土豆':'じゃがいも','胡萝卜':'にんじん','味噌':'味噌','裙带菜':'わかめ','午餐肉':'ランチョンミート','泡菜':'キムチ','年糕':'トック餅','拉面饼':'インスタント麺','芝士片':'スライスチーズ','意面':'パスタ','蘑菇':'マッシュルーム','淡奶油':'生クリーム','大蒜':'にんにく','帕玛森芝士':'パルメザンチーズ','三文鱼':'サーモン','柠檬':'レモン','芦笋':'アスパラガス','黄油':'バター','吐司':'食パン','牛油果':'アボカド','菠菜':'ほうれん草','豆芽':'もやし','韩式辣酱':'コチュジャン','五花肉':'豚バラ肉','冰糖':'氷砂糖','酱油':'醤油','料酒':'料理酒','鸡胸肉':'鶏むね肉','花生米':'ピーナッツ','干辣椒':'乾燥唐辛子','醋':'酢','糖':'砂糖','木耳':'きくらげ','青椒':'ピーマン','可乐':'コーラ','鸡翅':'手羽先','牛肉片':'牛薄切り肉','淀粉':'片栗粉','牛肉末':'牛ひき肉','面包糠':'パン粉','大酱':'テンジャン','西葫芦':'ズッキーニ','鱼饼':'さつま揚げ','面粉':'小麦粉','鱿鱼':'イカ','虾仁':'むきエビ','紫菜':'焼き海苔','火腿':'ハム','黄瓜':'きゅうり','韩式粉丝':'韓国春雨','生菜':'レタス','凯撒酱':'シーザードレッシング','牛奶':'牛乳','牛排':'ステーキ肉'};
+const ING_JA_REV={}; Object.keys(ING_JA).forEach(k=>ING_JA_REV[ING_JA[k]]=k);
+const UNIT_JA={'个':'個','根':'本','块':'個','勺':'さじ','杯':'カップ','条':'尾','片':'枚','罐':'缶','瓣':'かけ','份':'個','张':'枚','颗':'玉','g':'g','ml':'ml'};
+const CUISINE_JA={'中餐':'中華','日餐':'和食','韩餐':'韓国料理','西餐':'洋食','其他':'その他','全部':'すべて'};
+const DAY_JA={'周一':'月曜','周二':'火曜','周三':'水曜','周四':'木曜','周五':'金曜','周六':'土曜','周日':'日曜'};
+const MEAL_JA={'早餐':'朝食','午餐':'昼食','晚餐':'夕食'};
+
+// ---- UI文案 ----
+const T={
+zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给清单',me:'🙋 我',partner:'💑 TA',
+  syncHint:'💾 数据已自动保存 · 再开一个窗口试试实时同步',reset:'↺ 重置',langBtn:'🇯🇵 日本語',
+  tabPlan:'菜单规划',tabSuggest:'今天吃啥',tabShopping:'购物清单',tabFridge:'冰箱',tabDishes:'菜谱库',
+  mealsOf:'的三餐',readyNote:'✅ = 食材齐全，Ready to Cook',weekOverview:'📋 本周概览',add:'添加',
+  dupDish:'这餐已经加过这道菜啦',added:'已加入菜单 🎉',myRating:'🙋 我的评分',taRating:'💑 TA 的评分',
+  onlyOwn:'只能修改自己的评分哦',switchedMe:'已切换为：我',switchedTa:'已切换为：TA',
+  photoHint:'📷 拍张冰箱照片自动识别<br><span style="font-size:11px">（Demo 占位，点击体验提示）</span>',
+  photoToast:'Demo版：拍照识别开发中，先手动录入吧 📷',stock:'🧊 现有存货',emptyFridge:'冰箱空空如也',
+  del:'删除',manualAdd:'➕ 手动添加',ingName:'食材名',qty:'数量',unit:'单位',put:'加入',
+  fillIn:'请填写食材名和数量',stored:'已入库 🧊',toBuy:'🛒 待采购',bought:'已买',
+  autoGen:'根据本周菜单和冰箱存货自动生成',nothingToBuy:'太棒了，什么都不缺！🎉',
+  putInFridge:n=>`已买的 ${n} 样放进冰箱 →`,stockedGo:'已入库，去看看哪些菜 Ready 了 ✅',
+  readyNow:'✅ 现在就能做',sortNote:'按你俩的平均评分排序',noReady:'暂时没有食材齐全的菜',
+  almostReady:'🛍️ 补一两样就能做',missing:'缺',ready:'Ready ✅',missN:n=>`还差 ${n} 样`,ings:'食材：',
+  synced:'🔄 对方更新了数据，已同步',resetConfirm:'确定清空所有数据并恢复demo初始状态？',
+  resetDone:'已重置 ↺',steps:'👨‍🍳 做法',ingList:'🧺 食材',refTitle:'🔗 参考菜谱',refZh:'在下厨房搜索',refJa:'在Cookpad(日)搜索',
+  back:'← 返回',viewRecipe:'做法 →',seasoningNote:'* 油、盐等常备调味料未列入购物清单',lack:'缺',haveIt:'✓ 有',
+  addDishBtn:'➕ 添加新菜',customTag:'自创',adNamePh:'菜名，如：麻婆茄子',adSearchTip:'① 输入菜名，去菜谱网站找一篇做法',adSearchXcf:'🔍 下厨房',adSearchCkp:'🔍 Cookpad',adSearchGg:'🔍 Google',
+  adUrlPh:'② 粘贴菜谱页面网址（可选）',adImport:'尝试自动导入',adCorsTip:'多数网站有防抓取限制(CORS)，自动导入失败时请复制页面文字粘贴到下面',
+  adPastePh:'③ 把菜谱内容（食材+做法）粘贴到这里，会自动解析',adParse:'解析预览',adSave:'保存菜谱',
+  adParsed:(i,s)=>`✓ 解析出 ${i} 种食材、${s} 个步骤`,adParsedIng:'食材',adParsedStep:'步骤',
+  adNeedName:'请先输入菜名',adBadUrl:'网址格式不对',adFetching:'正在尝试抓取…',
+  adCorsFail:'该网站不允许跨域抓取，请复制页面文字粘贴导入 📋',adFetched:'已抓到页面文字，请检查解析结果',
+  adNeedData:'至少需要解析出1种食材和1个步骤',adSaved:'新菜已保存 🎉',
+  delDish:'🗑 删除这道菜',delConfirm:'删除这道菜？相关菜单安排也会移除',delDone:'已删除',refSource:'📄 原文链接',
+  cloudStatusOff:'⚪ 本地演示模式 · 数据仅存本机（点击查看说明）',
+  cloudNeedLogin:'🟠 未登录 · 点击登录，两人即可跨设备同步',
+  cloudNeedPair:'🟡 已登录 · 点击创建或加入你们的小家',
+  cloudOn:c=>`🟢 云同步中 · 我们的小家 ${c}`,
+  cloudTitle:'☁️ 我们的小家',
+  cloudNotConfigured:'尚未配置 Supabase 密钥，当前为本地演示模式（数据仅存这台设备）。部署者请按 README 把密钥填入 config.js 后重新发布。',
+  authHint:'无需密码：输入邮箱，点邮件里的登录链接即完成登录',authEmailPh:'输入你的邮箱',authSend:'发送登录链接',
+  authSent:'登录链接已发到邮箱，请打开邮件点击链接（回到本页自动登录）',authErr:'发送失败，请检查邮箱地址',
+  hhCreate:'创建我们的小家',hhJoinPh:'输入TA给你的邀请码',hhJoin:'加入',
+  hhInvite:'把这个邀请码告诉TA，让TA登录后输入：',hhMembers:n=>`成员 ${n}/2`,
+  partnerJoined:'TA已加入 💑 两人数据实时同步中',partnerNot:'TA还没加入，把邀请码发给TA吧',
+  hhCodeErr:'邀请码无效或已满员',logout:'退出登录',
+  clearCloud:'清空云端数据',clearCloudConfirm:'清空你们整组的云端数据（菜单/冰箱/评分/自建菜）？双方都会被清空'},
+ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、あとはリストにおまかせ',me:'🙋 私',partner:'💑 パートナー',
+  syncHint:'💾 自動保存中 · もう一つウィンドウを開くとリアルタイム同期を体験できます',reset:'↺ リセット',langBtn:'🇨🇳 中文',
+  tabPlan:'献立',tabSuggest:'今日何する?',tabShopping:'買い物リスト',tabFridge:'冷蔵庫',tabDishes:'レシピ',
+  mealsOf:'の三食',readyNote:'✅ = 材料が揃っています（Ready to Cook）',weekOverview:'📋 今週のまとめ',add:'追加',
+  dupDish:'この食事にはもう追加済みです',added:'献立に追加しました 🎉',myRating:'🙋 私の評価',taRating:'💑 パートナーの評価',
+  onlyOwn:'自分の評価だけ変更できます',switchedMe:'切替：私',switchedTa:'切替：パートナー',
+  photoHint:'📷 冷蔵庫の写真で自動認識<br><span style="font-size:11px">（デモ版のプレースホルダー）</span>',
+  photoToast:'デモ版：写真認識は開発中です。手動で入力してください 📷',stock:'🧊 在庫',emptyFridge:'冷蔵庫は空っぽです',
+  del:'削除',manualAdd:'➕ 手動で追加',ingName:'食材名',qty:'数量',unit:'単位',put:'追加',
+  fillIn:'食材名と数量を入力してください',stored:'入庫しました 🧊',toBuy:'🛒 買うもの',bought:'購入済',
+  autoGen:'今週の献立と冷蔵庫の在庫から自動生成',nothingToBuy:'すばらしい、何も足りなくない！🎉',
+  putInFridge:n=>`購入した ${n} 品を冷蔵庫へ →`,stockedGo:'入庫完了、Ready になった料理を見てみましょう ✅',
+  readyNow:'✅ 今すぐ作れる',sortNote:'ふたりの平均評価順',noReady:'材料が揃っている料理はまだありません',
+  almostReady:'🛍️ あと1〜2品で作れる',missing:'不足',ready:'Ready ✅',missN:n=>`あと ${n} 品`,ings:'材料：',
+  synced:'🔄 相手がデータを更新しました。同期済み',resetConfirm:'すべてのデータを消去して初期状態に戻しますか？',
+  resetDone:'リセットしました ↺',steps:'👨‍🍳 作り方',ingList:'🧺 材料',refTitle:'🔗 参考レシピ',refZh:'下厨房で検索',refJa:'Cookpadで検索',
+  back:'← 戻る',viewRecipe:'作り方 →',seasoningNote:'* 油・塩などの常備調味料は買い物リストに含まれません',lack:'不足',haveIt:'✓ あり',
+  addDishBtn:'➕ 新しい料理を追加',customTag:'オリジナル',adNamePh:'料理名（例：麻婆茄子）',adSearchTip:'① 料理名を入力し、レシピサイトで作り方を探す',adSearchXcf:'🔍 下厨房',adSearchCkp:'🔍 Cookpad',adSearchGg:'🔍 Google',
+  adUrlPh:'② レシピページのURLを貼る（任意）',adImport:'自動取り込みを試す',adCorsTip:'多くのサイトはCORS制限で直接取得できません。失敗した場合はページの文字をコピーして下に貼り付けてください',
+  adPastePh:'③ レシピ内容（材料＋作り方）をここに貼り付けると自動解析されます',adParse:'解析プレビュー',adSave:'レシピを保存',
+  adParsed:(i,s)=>`✓ 材料 ${i} 品、手順 ${s} 個を解析`,adParsedIng:'材料',adParsedStep:'手順',
+  adNeedName:'先に料理名を入力してください',adBadUrl:'URLの形式が正しくありません',adFetching:'取得を試しています…',
+  adCorsFail:'このサイトは直接取得できません。文字をコピーして貼り付けてください 📋',adFetched:'ページの文字を取得しました。解析結果を確認してください',
+  adNeedData:'材料1品と手順1個以上が必要です',adSaved:'保存しました 🎉',
+  delDish:'🗑 この料理を削除',delConfirm:'削除しますか？献立からも外れます',delDone:'削除しました',refSource:'📄 元ページ',
+  cloudStatusOff:'⚪ ローカルデモモード · データはこの端末のみ（タップで詳細）',
+  cloudNeedLogin:'🟠 未ログイン · タップしてログインすると2人で同期できます',
+  cloudNeedPair:'🟡 ログイン済 · タップして2人の「おうち」を作成/参加',
+  cloudOn:c=>`🟢 クラウド同期中 · おうち ${c}`,
+  cloudTitle:'☁️ ふたりのおうち',
+  cloudNotConfigured:'Supabaseキーが未設定のため、ローカルデモモードで動作中です（データはこの端末のみ）。READMEに従って config.js を設定してください。',
+  authHint:'パスワード不要：メールを入力し、届いたリンクをタップするだけでログイン',authEmailPh:'メールアドレスを入力',authSend:'ログインリンクを送信',
+  authSent:'ログインリンクを送信しました。メールのリンクを開いてください（このページに戻ると自動ログイン）',authErr:'送信に失敗しました。メールアドレスを確認してください',
+  hhCreate:'ふたりのおうちを作成',hhJoinPh:'相手からもらった招待コードを入力',hhJoin:'参加',
+  hhInvite:'この招待コードを相手に伝えて、ログイン後に入力してもらってください：',hhMembers:n=>`メンバー ${n}/2`,
+  partnerJoined:'相手が参加しました 💑 リアルタイム同期中',partnerNot:'相手はまだ参加していません。招待コードを送りましょう',
+  hhCodeErr:'招待コードが無効か、満員です',logout:'ログアウト',
+  clearCloud:'クラウドデータを消去',clearCloudConfirm:'ふたりのクラウドデータ（献立/冷蔵庫/評価/オリジナルレシピ）をすべて消去しますか？'}
+};
+
+// ---- 状态 ----
+function defaultState(){
+  const plan={};
+  DAYS.forEach(d=>plan[d]={'早餐':[],'午餐':[],'晚餐':[]});
+  plan['周一']={'早餐':['d12'],'午餐':['d1'],'晚餐':['d6','d7']};
+  plan['周二']={'早餐':['d4'],'午餐':['d5'],'晚餐':['d8']};
+  return {
+    ratings:{me:{d1:5,d2:4,d5:5,d6:4,d8:3,d10:4,d11:5,d12:3},
+             partner:{d1:4,d2:5,d3:5,d5:3,d6:5,d8:5,d9:4,d10:3,d12:4}},
+    fridge:[{n:'鸡蛋',q:6,u:'个'},{n:'番茄',q:3,u:'个'},{n:'葱',q:3,u:'根'},
+      {n:'大米',q:5,u:'杯'},{n:'豆腐',q:1,u:'块'},{n:'洋葱',q:2,u:'个'},
+      {n:'土豆',q:3,u:'个'},{n:'胡萝卜',q:2,u:'根'},{n:'味噌',q:6,u:'勺'},
+      {n:'鸡腿肉',q:300,u:'g'},{n:'吐司',q:4,u:'片'}],
+    plan, purchased:{}, customDishes:[],
+  };
+}
+const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
+const MEALS=['早餐','午餐','晚餐'];
+const SYNC_KEYS=['ratings','fridge','plan','purchased','customDishes'];
+
+const state=Object.assign({user:'me',lang:'zh',activeDay:'周一',cuisineFilter:'全部',detailDish:null},defaultState());
+
+// ---- i18n helpers ----
+function tr(key){const v=T[state.lang][key];return v===undefined?key:v;}
+function dishName(d){return state.lang==='ja'?(d.ja||d.name):d.name;}
+function ingName(n){return state.lang==='ja'?(ING_JA[n]||n):n;}
+function unitName(u){return state.lang==='ja'?(UNIT_JA[u]||u):u;}
+function cuisineName(c){return state.lang==='ja'?(CUISINE_JA[c]||c):c;}
+function dayName(d){return state.lang==='ja'?(DAY_JA[d]||d):d;}
+function mealName(m){return state.lang==='ja'?(MEAL_JA[m]||m):m;}
+// 输入统一为中文主键（日语模式下可输入日语名）
+function canonIng(n){return ING_JA_REV[n]||n;}
+
+// ---- 核心计算 ----
+function allDishes(){ return DISHES.concat(state.customDishes||[]); }
+function getDish(id){ return allDishes().find(d=>d.id===id); }
+
+// ---- 菜谱文本解析器（支持下厨房/Cookpad等常见粘贴格式） ----
+const CN_NUM={'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'半':0.5};
+function parseQty(s){
+  if(CN_NUM[s]!=null) return CN_NUM[s];
+  if(s.includes('/')){const[a,b]=s.split('/');return parseFloat(a)/parseFloat(b);}
+  const v=parseFloat(s); return isNaN(v)?1:v;
+}
+function normUnit(u){
+  if(u==='克'||u==='G')return 'g';
+  if(u==='毫升'||u==='ML')return 'ml';
+  if(u==='大さじ'||u==='小さじ')return '勺';
+  if(u==='個')return '个'; if(u==='枚')return '片'; if(u==='本')return '根'; if(u==='缶')return '罐';
+  return u;
+}
+function parseRecipeText(text){
+  const lines=String(text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const ings=[],steps=[];
+  let mode='auto';
+  const ingHeader=/^[【\[（(]?(用料|材料|食材|配料|ingredients?)/i;
+  const stepHeader=/^[【\[（(]?(做法|步骤|烹饪步骤|制作方法|作り方|手順|instructions?|directions?)/i;
+  const unitRe='(克|毫升|个|個|根|块|勺|杯|条|片|枚|罐|缶|瓣|张|颗|只|本|把|袋|包|盒|合|[gG]|ml|ML|[lL])';
+  for(const line of lines){
+    if(ingHeader.test(line)&&line.length<12){mode='ing';continue;}
+    if(stepHeader.test(line)&&line.length<12){mode='step';continue;}
+    const numbered=line.match(/^(?:第?\s*\d+\s*[\.、步）)]|[①②③④⑤⑥⑦⑧⑨⑩]|STEP\s*\d+[:：]?)\s*(.+)/i);
+    if(mode!=='step'){
+      // 「名称 数量单位」如: 猪肉 300克 / 土豆 2个 / トマト 2個
+      let m=line.match(new RegExp('^([^\\d①-⑩]{1,15}?)[\\s:：·…]*([\\d一二两三四五六七八九十半]+(?:[\\.\\/]\\d+)?)\\s*'+unitRe+'\\s*$'));
+      if(m){ings.push({n:m[1].trim(),q:parseQty(m[2]),u:normUnit(m[3])});continue;}
+      // 日式「醤油 大さじ2」：单位在数字前
+      m=line.match(/^([^\d]{1,15}?)[\s:：·]*[（(]?(大さじ|小さじ)\s*([\d\.\/]+)/);
+      if(m){ings.push({n:m[1].trim(),q:parseQty(m[3]),u:'勺'});continue;}
+      // 「盐 适量」
+      m=line.match(/^([^\d]{1,12}?)[\s:：·]*[（(]?(适量|少许|少々|適量|お好みで)[）)]?$/);
+      if(m){ings.push({n:m[1].trim(),q:1,u:'份'});continue;}
+    }
+    if(numbered){steps.push(numbered[1].trim());mode='step';continue;}
+    if(mode==='step'&&line.length>3){steps.push(line);continue;}
+    if(mode==='auto'&&line.length>=10){steps.push(line);}
+  }
+  return {ings,steps};
+}
+
+function avgRating(id){
+  const a=state.ratings.me[id], b=state.ratings.partner[id];
+  const vals=[a,b].filter(v=>v!=null);
+  return vals.length? vals.reduce((s,v)=>s+v,0)/vals.length : 0;
+}
+
+function requiredIngredients(plan){
+  const need={};
+  Object.values(plan).forEach(day=>Object.values(day).forEach(ids=>ids.forEach(id=>{
+    const dish=getDish(id); if(!dish) return;
+    dish.ingredients.forEach(i=>{
+      if(!need[i.n]) need[i.n]={n:i.n,q:0,u:i.u};
+      need[i.n].q+=i.q;
+    });
+  })));
+  return need;
+}
+
+function fridgeMap(fridge){
+  const m={}; fridge.forEach(i=>{ m[i.n]=(m[i.n]||0)+i.q; }); return m;
+}
+
+function shoppingList(plan,fridge,purchased){
+  const need=requiredIngredients(plan), stock=fridgeMap(fridge), out=[];
+  Object.values(need).forEach(item=>{
+    const have=stock[item.n]||0;
+    const shortage=item.q-have;
+    if(shortage>1e-9) out.push({n:item.n,q:Math.ceil(shortage*100)/100,u:item.u,done:!!purchased[item.n]});
+  });
+  return out.sort((a,b)=> (a.done-b.done) || a.n.localeCompare(b.n,'zh'));
+}
+
+function missingFor(dish,fridge,purchased){
+  const stock=fridgeMap(fridge);
+  return dish.ingredients.filter(i=>{
+    if(purchased && purchased[i.n]) return false;
+    return (stock[i.n]||0) < i.q - 1e-9;
+  });
+}
+
+function isReadyToCook(dish,fridge,purchased){
+  return missingFor(dish,fridge,purchased).length===0;
+}
+
+function recommend(fridge,purchased){
+  return allDishes().map(d=>({dish:d,missing:missingFor(d,fridge,purchased),rating:avgRating(d.id)}))
+    .sort((a,b)=> (a.missing.length-b.missing.length) || (b.rating-a.rating));
+}
+/* ================= CORE LOGIC END ================= */
+
+/* ================= PERSISTENCE & SYNC START ================= */
+const LS_KEY='mp_state_v2', LS_PREFS='mp_prefs_v2';
+let syncChannel=null;
+state.ver=0; // 版本号：跨设备合并时新者胜
+
+function snapshot(){const s={ver:state.ver};SYNC_KEYS.forEach(k=>s[k]=state[k]);return s;}
+
+function saveState(){
+  try{
+    if(!CLOUD_ON) localStorage.setItem(LS_KEY,JSON.stringify(snapshot()));
+    localStorage.setItem(LS_PREFS,JSON.stringify({lang:state.lang,user:state.user}));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    if(!CLOUD_ON){
+      const raw=localStorage.getItem(LS_KEY);
+      if(raw){const s=JSON.parse(raw);SYNC_KEYS.forEach(k=>{if(s[k]!=null)state[k]=s[k];});if(s.ver)state.ver=s.ver;}
+    }
+    const p=localStorage.getItem(LS_PREFS);
+    if(p){const q=JSON.parse(p);if(q.lang)state.lang=q.lang;if(q.user)state.user=q.user;}
+  }catch(e){}
+}
+function applyRemote(data){
+  if(!data)return;
+  SYNC_KEYS.forEach(k=>{if(data[k]!=null)state[k]=data[k];});
+  if(data.ver!=null&&data.ver>state.ver)state.ver=data.ver;
+  renderAll();
+  toast(tr('synced'),true);
+}
+function initSync(){
+  try{
+    syncChannel=new BroadcastChannel('mp_sync_v2');
+    syncChannel.onmessage=e=>applyRemote(e.data);
+  }catch(e){/* 旧浏览器降级：仅storage事件 */}
+  if(typeof window!=='undefined'&&window.addEventListener){
+    window.addEventListener('storage',e=>{
+      if(e.key===LS_KEY&&e.newValue){try{applyRemote(JSON.parse(e.newValue));}catch(_){}}
+    });
+  }
+}
+// 每次数据变更：保存 + 同窗口广播 + 跨设备发送 + 重绘
+function commit(){
+  if(CLOUD_ON){renderAll();return;}
+  state.ver++;
+  saveState();
+  if(syncChannel){try{syncChannel.postMessage(snapshot());}catch(e){}}
+  renderAll();
+}
+
+/* ---- 云端模式（Supabase）：邮箱登录 + 情侣组 + 字段级实时同步 ---- */
+const CLOUD_ON=!!(typeof window!=='undefined'&&window.APP_CONFIG&&window.APP_CONFIG.SUPABASE_URL&&window.APP_CONFIG.SUPABASE_ANON_KEY);
+const cloud={on:CLOUD_ON,sb:null,session:null,myUid:null,hid:null,invite:null,members:1,ready:false,sentTo:null};
+
+function cloudClient(){
+  if(cloud.sb)return cloud.sb;
+  const lib=(typeof window!=='undefined'&&window.supabase)||null;
+  if(!lib)return null;
+  cloud.sb=lib.createClient(window.APP_CONFIG.SUPABASE_URL,window.APP_CONFIG.SUPABASE_ANON_KEY);
+  return cloud.sb;
+}
+function emptyLocalData(){
+  state.fridge=[];state.purchased={};state.customDishes=[];state.ratings={me:{},partner:{}};
+  const plan={};DAYS.forEach(d=>plan[d]={'早餐':[],'午餐':[],'晚餐':[]});state.plan=plan;
+}
+function cloudStatusText(){
+  if(!cloud.on)return tr('cloudStatusOff');
+  if(!cloud.session)return tr('cloudNeedLogin');
+  if(!cloud.hid)return tr('cloudNeedPair');
+  return T[state.lang].cloudOn(cloud.invite);
+}
+async function initCloud(){
+  if(!cloud.on)return;
+  const sb=cloudClient();
+  if(!sb){cloud.on=false;renderAll();return;}
+  const {data}=await sb.auth.getSession();
+  cloud.session=data&&data.session||null;
+  cloud.myUid=cloud.session?cloud.session.user.id:null;
+  sb.auth.onAuthStateChange((_e,sess)=>{
+    const had=!!cloud.session;
+    cloud.session=sess;cloud.myUid=sess?sess.user.id:null;
+    if(!!sess!==had)afterAuth();
+  });
+  afterAuth();
+}
+async function afterAuth(){
+  if(!cloud.session){cloud.ready=false;renderHeader();openPairing();return;}
+  const sb=cloudClient();
+  const {data}=await sb.rpc('my_household');
+  const row=Array.isArray(data)?data[0]:data;
+  if(!row){cloud.hid=null;renderHeader();openPairing();return;}
+  cloud.hid=row.household_id;cloud.invite=row.invite_code;cloud.members=Number(row.member_count)||1;
+  await cloudLoadAll();
+  cloudSubscribe();
+  cloud.ready=true;
+  // 面板开着（刚创建/加入小家）则原地刷新让用户看到邀请码；否则保持关闭
+  if($('pairing').classList.contains('open'))renderPairing();
+  renderAll();
+}
+function applyCloudTables(t){
+  if(t.fridge)state.fridge=t.fridge.map(x=>({_id:x.id,n:x.n,q:Number(x.q),u:x.u}));
+  if(t.plan){
+    const plan={};DAYS.forEach(d=>plan[d]={'早餐':[],'午餐':[],'晚餐':[]});
+    t.plan.forEach(x=>{if(plan[x.day]&&plan[x.day][x.meal]&&!plan[x.day][x.meal].includes(x.dish_id))plan[x.day][x.meal].push(x.dish_id);});
+    state.plan=plan;
+  }
+  if(t.purchased){state.purchased={};t.purchased.forEach(x=>state.purchased[x.name]=true);}
+  if(t.ratings){
+    state.ratings={me:{},partner:{}};
+    t.ratings.forEach(x=>{state.ratings[x.user_id===cloud.myUid?'me':'partner'][x.dish_id]=x.rating;});
+  }
+  if(t.custom)state.customDishes=t.custom.map(x=>Object.assign({id:x.id,custom:true},x.data));
+}
+async function cloudLoadAll(){
+  const sb=cloudClient();
+  const [f,p,pu,r,cd]=await Promise.all([
+    sb.from('fridge_items').select('*').eq('household_id',cloud.hid),
+    sb.from('plan_entries').select('*').eq('household_id',cloud.hid),
+    sb.from('purchased_items').select('*').eq('household_id',cloud.hid),
+    sb.from('ratings').select('*').eq('household_id',cloud.hid),
+    sb.from('custom_dishes').select('*').eq('household_id',cloud.hid),
+  ]);
+  applyCloudTables({fridge:f.data||[],plan:p.data||[],purchased:pu.data||[],ratings:r.data||[],custom:cd.data||[]});
+}
+let refetchTimer=null;
+function cloudSubscribe(){
+  const sb=cloudClient();
+  const ch=sb.channel('hh-'+cloud.hid);
+  ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes'].forEach(tb=>{
+    ch.on('postgres_changes',{event:'*',schema:'public',table:tb,filter:'household_id=eq.'+cloud.hid},()=>{
+      clearTimeout(refetchTimer);
+      refetchTimer=setTimeout(async()=>{await cloudLoadAll();renderAll();toast(tr('synced'),true);},250);
+    });
+  });
+  ch.subscribe();
+}
+// 云端写操作：调用方已完成乐观更新，这里落库后拉回真值
+async function cdb(op){
+  if(!cloud.on||!cloud.ready)return;
+  const sb=cloudClient();
+  try{await op(sb);}catch(e){}
+  try{await cloudLoadAll();renderAll();}catch(e){}
+}
+const db={
+  rating(dishId,val){cdb(async sb=>{
+    if(val==null)await sb.from('ratings').delete().match({household_id:cloud.hid,user_id:cloud.myUid,dish_id:dishId});
+    else await sb.from('ratings').upsert({household_id:cloud.hid,user_id:cloud.myUid,dish_id:dishId,rating:val});
+  });},
+  planAdd(day,meal,dishId){cdb(sb=>sb.from('plan_entries').upsert({household_id:cloud.hid,day,meal,dish_id:dishId}));},
+  planDel(day,meal,dishId){cdb(sb=>sb.from('plan_entries').delete().match({household_id:cloud.hid,day,meal,dish_id:dishId}));},
+  fridgeAdd(n,u){cdb(async sb=>{
+    const ex=state.fridge.find(i=>i.n===n&&i.u===u);
+    if(ex&&ex._id)await sb.from('fridge_items').update({q:ex.q}).eq('id',ex._id);
+    else if(ex)await sb.from('fridge_items').insert({household_id:cloud.hid,n:ex.n,q:ex.q,u:ex.u});
+  });},
+  fridgeDel(item){cdb(async sb=>{
+    if(item&&item._id)await sb.from('fridge_items').delete().eq('id',item._id);
+  });},
+  purchase(n,on){cdb(async sb=>{
+    if(on)await sb.from('purchased_items').upsert({household_id:cloud.hid,name:n});
+    else await sb.from('purchased_items').delete().match({household_id:cloud.hid,name:n});
+  });},
+  stock(ch){cdb(async sb=>{
+    for(const c of ch.updates)await sb.from('fridge_items').update({q:c.q}).eq('id',c.id);
+    for(const c of ch.inserts)await sb.from('fridge_items').insert({household_id:cloud.hid,n:c.n,q:c.q,u:c.u});
+    for(const n of ch.unmark)await sb.from('purchased_items').delete().match({household_id:cloud.hid,name:n});
+  });},
+  customAdd(dish){cdb(sb=>{
+    const data={};Object.keys(dish).forEach(k=>{if(k!=='id'&&k!=='custom')data[k]=dish[k];});
+    return sb.from('custom_dishes').insert({id:dish.id,household_id:cloud.hid,data,created_by:cloud.myUid});
+  });},
+  customDel(id){cdb(async sb=>{
+    await sb.from('custom_dishes').delete().eq('id',id);
+    await sb.from('plan_entries').delete().match({household_id:cloud.hid,dish_id:id});
+  });},
+  clearAll(){cdb(async sb=>{
+    for(const tb of ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes'])
+      await sb.from(tb).delete().eq('household_id',cloud.hid);
+  });},
+};
+async function authSendLink(){
+  const email=$('auth-email').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){toast(tr('authErr'));return;}
+  const sb=cloudClient();
+  const opts={};
+  if(typeof location!=='undefined')opts.emailRedirectTo=location.origin+location.pathname;
+  const {error}=await sb.auth.signInWithOtp({email,options:opts});
+  if(error){toast(tr('authErr'));return;}
+  cloud.sentTo=email;renderPairing();
+}
+async function hhCreate(){
+  const sb=cloudClient();
+  const {error}=await sb.rpc('create_household');
+  if(error){toast(tr('hhCodeErr'));return;}
+  await afterAuth();
+}
+async function hhJoin(){
+  const code=$('hh-code').value.trim();
+  if(!code){toast(tr('hhCodeErr'));return;}
+  const sb=cloudClient();
+  const {error}=await sb.rpc('join_household',{code});
+  if(error){toast(tr('hhCodeErr'));return;}
+  await afterAuth();
+}
+async function doLogout(){
+  const sb=cloudClient();
+  try{await sb.auth.signOut();}catch(e){}
+  cloud.session=null;cloud.myUid=null;cloud.hid=null;cloud.invite=null;cloud.ready=false;cloud.sentTo=null;
+  emptyLocalData();
+  renderAll();openPairing();
+}
+function clearCloudData(){
+  if(typeof confirm==='function'&&!confirm(tr('clearCloudConfirm')))return;
+  emptyLocalData();
+  renderAll();
+  db.clearAll();
+  toast(tr('resetDone'));
+}
+function openPairing(){renderPairing();$('pairing').classList.add('open');}
+function closePairing(){$('pairing').classList.remove('open');}
+function renderPairing(){
+  let body='';
+  if(!cloud.on){
+    body=`<div class="card"><h3>${tr('cloudTitle')}</h3><p class="muted">${tr('cloudNotConfigured')}</p></div>`;
+  }else if(!cloud.session){
+    body=`<div class="card"><h3>${tr('cloudTitle')}</h3>
+      ${cloud.sentTo?`<p style="font-size:14px;margin:8px 0">📮 ${tr('authSent')}</p><p class="muted">${cloud.sentTo}</p>`
+      :`<p class="muted" style="margin-bottom:8px">${tr('authHint')}</p>
+      <div class="flex"><input type="text" id="auth-email" placeholder="${tr('authEmailPh')}" class="grow" style="min-width:0">
+      <button class="btn" onclick="authSendLink()">${tr('authSend')}</button></div>`}</div>`;
+  }else if(!cloud.hid){
+    body=`<div class="card"><h3>${tr('cloudTitle')}</h3>
+      <p class="muted" style="margin-bottom:10px">${cloud.session.user.email}</p>
+      <button class="btn" style="width:100%" onclick="hhCreate()">${tr('hhCreate')}</button></div>
+      <div class="card"><div class="flex">
+      <input type="text" id="hh-code" placeholder="${tr('hhJoinPh')}" class="grow" style="min-width:0;text-transform:uppercase">
+      <button class="btn" onclick="hhJoin()">${tr('hhJoin')}</button></div></div>`;
+  }else{
+    body=`<div class="card"><h3>${tr('cloudTitle')}</h3>
+      <p class="muted">${cloud.session.user.email} · ${T[state.lang].hhMembers(cloud.members)}</p>
+      <p class="muted" style="margin-top:8px">${tr('hhInvite')}</p>
+      <div style="text-align:center;font-size:30px;font-weight:700;letter-spacing:4px;margin:10px 0">${cloud.invite}</div>
+      <p class="muted">${cloud.members>=2?tr('partnerJoined'):tr('partnerNot')}</p>
+      <div class="flex" style="margin-top:12px;justify-content:center">
+        <button class="btn ghost" onclick="doLogout()">${tr('logout')}</button>
+        <button class="btn ghost" onclick="clearCloudData()">${tr('clearCloud')}</button>
+      </div></div>`;
+  }
+  $('pairing').innerHTML=`<div class="detail-inner"><button class="detail-back" onclick="closePairing()">${tr('back')}</button>${body}</div>`;
+}
+
+function resetDemo(){
+  if(cloud.on){clearCloudData();return;}
+  if(typeof confirm==='function'&&!confirm(tr('resetConfirm')))return;
+  Object.assign(state,defaultState());
+  state.purchased={};
+  commit();
+  toast(tr('resetDone'));
+}
+/* ================= PERSISTENCE & SYNC END ================= */
+
+// ---- UI ----
+function $(id){return document.getElementById(id);}
+function toast(msg,isSync){
+  const t=$('toast');t.textContent=msg;
+  t.classList.toggle('sync',!!isSync);
+  t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+function toggleLang(){
+  state.lang=state.lang==='zh'?'ja':'zh';
+  saveState();
+  renderAll();
+}
+
+function switchUser(u){
+  if(cloud.on)return;
+  state.user=u;
+  saveState();
+  renderAll();
+  toast(u==='me'?tr('switchedMe'):tr('switchedTa'));
+}
+
+function switchTab(t){
+  ['plan','dishes','fridge','shopping','suggest'].forEach(k=>{
+    $('page-'+k).classList.toggle('active',k===t);
+    $('tab-'+k).classList.toggle('active',k===t);
+  });
+}
+
+function starHtml(id,who,interactive){
+  const r=state.ratings[who][id]||0;
+  let s='';
+  for(let i=1;i<=5;i++){
+    s+=`<span class="${i<=r?'':'off'}" ${interactive?`onclick="setRating('${id}','${who}',${i})"`:''}>★</span>`;
+  }
+  return `<span class="stars">${s}</span>`;
+}
+
+function setRating(id,who,v){
+  if(who!==state.user){ toast(tr('onlyOwn')); return; }
+  state.ratings[who][id]= state.ratings[who][id]===v? null : v;
+  if(cloud.on)db.rating(id,state.ratings[who][id]);
+  commit();
+}
+
+// -- 头部静态文案 --
+function renderHeader(){
+  $('h-title').textContent=tr('title');
+  $('h-sub').textContent=tr('sub');
+  $('h-sync').textContent=cloudStatusText();
+  $('u-partner').classList.toggle('hidden',cloud.on);
+  $('btn-lang').textContent=tr('langBtn');
+  $('btn-reset').textContent=tr('reset');
+  $('u-me').textContent=cloud.on&&cloud.session?('🙋 '+String(cloud.session.user.email).split('@')[0]):tr('me');
+  $('u-partner').textContent=tr('partner');
+  $('u-me').classList.toggle('active',state.user==='me');
+  $('u-partner').classList.toggle('active',state.user==='partner');
+  const lbls={plan:'tabPlan',suggest:'tabSuggest',shopping:'tabShopping',fridge:'tabFridge',dishes:'tabDishes'};
+  Object.keys(lbls).forEach(k=>{$('tab-'+k).querySelector('.lbl').textContent=tr(lbls[k]);});
+}
+
+// -- 菜单规划页 --
+function renderPlan(){
+  const day=state.activeDay;
+  let html=`<div class="daynav">${DAYS.map(d=>`<button class="${d===day?'active':''}" onclick="setDay('${d}')">${dayName(d)}</button>`).join('')}</div>`;
+  html+=`<div class="card"><h3>${dayName(day)}${tr('mealsOf')}</h3>`;
+  MEALS.forEach(meal=>{
+    const ids=state.plan[day][meal];
+    html+=`<div class="meal-slot"><div class="slot-title">${meal==='早餐'?'🌅':meal==='午餐'?'☀️':'🌙'} ${mealName(meal)}</div>`;
+    ids.forEach(id=>{
+      const d=getDish(id);
+      const ready=isReadyToCook(d,state.fridge,state.purchased);
+      html+=`<span class="dish-chip ${ready?'ready':''}">${d.emoji} ${dishName(d)}${ready?' ✅':''}<span class="rm" onclick="removeDish('${day}','${meal}','${id}')">✕</span></span>`;
+    });
+    html+=`<div class="flex" style="margin-top:6px">
+      <select id="sel-${meal}" class="grow">${allDishes().map(d=>`<option value="${d.id}">${d.emoji} ${dishName(d)}（${cuisineName(d.cuisine)}·★${avgRating(d.id).toFixed(1)}）</option>`).join('')}</select>
+      <button class="btn small" onclick="addDish('${day}','${meal}')">${tr('add')}</button></div></div>`;
+  });
+  html+=`<p class="muted" style="margin-top:8px">${tr('readyNote')}</p></div>`;
+
+  html+=`<div class="card"><h3>${tr('weekOverview')}</h3>`;
+  DAYS.forEach(d=>{
+    const all=MEALS.flatMap(m=>state.plan[d][m]);
+    if(all.length){
+      html+=`<div class="row"><span style="font-size:13px;font-weight:600">${dayName(d)}</span><span style="font-size:12px;text-align:right">${all.map(id=>getDish(id).emoji+dishName(getDish(id))).join('、')}</span></div>`;
+    }
+  });
+  html+=`</div>`;
+  $('page-plan').innerHTML=html;
+}
+function setDay(d){state.activeDay=d;renderPlan();}
+function addDish(day,meal){
+  const id=$('sel-'+meal).value;
+  if(state.plan[day][meal].includes(id)){toast(tr('dupDish'));return;}
+  state.plan[day][meal].push(id);
+  if(cloud.on)db.planAdd(day,meal,id);
+  commit(); toast(tr('added'));
+}
+function removeDish(day,meal,id){
+  state.plan[day][meal]=state.plan[day][meal].filter(x=>x!==id);
+  if(cloud.on)db.planDel(day,meal,id);
+  commit();
+}
+
+// -- 菜谱库页 --
+function renderDishes(){
+  const cuisines=['全部','中餐','日餐','韩餐','西餐','其他'];
+  let html=`<button class="btn" style="width:100%;margin-bottom:10px" onclick="openAddDish()">${tr('addDishBtn')}</button>`;
+  html+=`<div class="cuisine-filter">${cuisines.map(c=>`<button class="${state.cuisineFilter===c?'active':''}" onclick="setCuisine('${c}')">${cuisineName(c)}</button>`).join('')}</div>`;
+  allDishes().filter(d=>state.cuisineFilter==='全部'||d.cuisine===state.cuisineFilter).forEach(d=>{
+    const missing=missingFor(d,state.fridge,state.purchased);
+    html+=`<div class="card">
+      <div class="flex clickable" onclick="showDish('${d.id}')"><span style="font-size:22px">${d.emoji}</span>
+        <div class="grow"><b style="font-size:14px">${dishName(d)}</b> <span class="tag">${cuisineName(d.cuisine)}</span>
+        ${d.custom?`<span class="tag">${tr('customTag')}</span>`:''}
+        ${missing.length===0?`<span class="tag green">${tr('ready')}</span>`:`<span class="tag amber">${T[state.lang].missN(missing.length)}</span>`}</div>
+        <button class="btn ghost small">${tr('viewRecipe')}</button></div>
+      <div class="row"><span class="muted">${tr('myRating')}</span>${starHtml(d.id,'me',state.user==='me')}</div>
+      <div class="row"><span class="muted">${tr('taRating')}</span>${starHtml(d.id,'partner',state.user==='partner')}</div>
+    </div>`;
+  });
+  $('page-dishes').innerHTML=html;
+}
+function setCuisine(c){state.cuisineFilter=c;renderDishes();}
+
+// -- 冰箱页 --
+function renderFridge(){
+  let html=`<div class="photo-hint" onclick="toast(tr('photoToast'))">${tr('photoHint')}</div>`;
+  html+=`<div class="card"><h3>${tr('stock')}(${state.fridge.length})</h3>`;
+  if(state.fridge.length===0) html+=`<div class="empty">${tr('emptyFridge')}</div>`;
+  state.fridge.forEach((i,idx)=>{
+    html+=`<div class="row"><span>${ingName(i.n)}</span><span class="flex"><span class="muted">${i.q}${unitName(i.u)}</span><button class="btn ghost small" onclick="removeFridge(${idx})">${tr('del')}</button></span></div>`;
+  });
+  html+=`</div><div class="card"><h3>${tr('manualAdd')}</h3>
+    <div class="flex">
+      <input type="text" id="f-name" placeholder="${tr('ingName')}" class="grow" style="min-width:0">
+      <input type="number" id="f-qty" placeholder="${tr('qty')}" style="width:70px" min="0" step="0.5">
+      <input type="text" id="f-unit" placeholder="${tr('unit')}" style="width:56px">
+      <button class="btn" onclick="addFridge()">${tr('put')}</button>
+    </div></div>`;
+  $('page-fridge').innerHTML=html;
+}
+function addFridge(){
+  const raw=$('f-name').value.trim().replace(/[<>"'`]/g,'');
+  const n=canonIng(raw);
+  const q=parseFloat($('f-qty').value);
+  const u=$('f-unit').value.trim().replace(/[<>"'`]/g,'')||'份';
+  if(!n||!(q>0)){toast(tr('fillIn'));return;}
+  const exist=state.fridge.find(i=>i.n===n&&i.u===u);
+  if(exist) exist.q+=q; else state.fridge.push({n,q,u});
+  if(cloud.on)db.fridgeAdd(n,u);
+  commit(); toast(tr('stored'));
+}
+function removeFridge(idx){ const item=state.fridge[idx]; state.fridge.splice(idx,1); if(cloud.on)db.fridgeDel(item); commit(); }
+
+// -- 购物清单页 --
+function renderShopping(){
+  const list=shoppingList(state.plan,state.fridge,state.purchased);
+  const done=list.filter(i=>i.done).length;
+  let html=`<div class="card"><h3>${tr('toBuy')}（${done}/${list.length} ${tr('bought')}）</h3>
+    <p class="muted" style="margin-bottom:8px">${tr('autoGen')}</p>`;
+  if(list.length===0) html+=`<div class="empty">${tr('nothingToBuy')}</div>`;
+  list.forEach(i=>{
+    html+=`<div class="row">
+      <span class="flex"><span class="check ${i.done?'on':''}" onclick="togglePurchase('${i.n}')">${i.done?'✓':''}</span>
+      <span class="${i.done?'strike':''}">${ingName(i.n)}</span></span>
+      <span class="muted">${i.q}${unitName(i.u)}</span></div>`;
+  });
+  html+=`</div>`;
+  if(done>0) html+=`<div style="text-align:center"><button class="btn ghost" onclick="stockPurchased()">${T[state.lang].putInFridge(done)}</button></div>`;
+  $('page-shopping').innerHTML=html;
+}
+function togglePurchase(n){
+  state.purchased[n]=!state.purchased[n];
+  if(cloud.on)db.purchase(n,!!state.purchased[n]);
+  commit();
+}
+function stockPurchased(){
+  const list=shoppingList(state.plan,state.fridge,{});
+  const ch={updates:[],inserts:[],unmark:[]};
+  list.forEach(i=>{
+    if(state.purchased[i.n]){
+      const exist=state.fridge.find(f=>f.n===i.n&&f.u===i.u);
+      if(exist){
+        exist.q+=i.q;
+        if(exist._id)ch.updates.push({id:exist._id,q:exist.q});
+        else ch.inserts.push({n:i.n,q:i.q,u:i.u});
+      }else{
+        state.fridge.push({n:i.n,q:i.q,u:i.u});
+        ch.inserts.push({n:i.n,q:i.q,u:i.u});
+      }
+      delete state.purchased[i.n];
+      ch.unmark.push(i.n);
+    }
+  });
+  if(cloud.on)db.stock(ch);
+  commit(); toast(tr('stockedGo'));
+}
+
+// -- 推荐页 --
+function renderSuggest(){
+  const recs=recommend(state.fridge,state.purchased);
+  const ready=recs.filter(r=>r.missing.length===0);
+  const almost=recs.filter(r=>r.missing.length>0&&r.missing.length<=2);
+  let html=`<div class="card"><h3>${tr('readyNow')}（${ready.length}）</h3><p class="muted" style="margin-bottom:6px">${tr('sortNote')}</p>`;
+  if(ready.length===0) html+=`<div class="empty">${tr('noReady')}</div>`;
+  ready.forEach(r=>{
+    html+=`<div class="row"><span class="clickable" onclick="showDish('${r.dish.id}')">${r.dish.emoji} ${dishName(r.dish)} <span class="tag">${cuisineName(r.dish.cuisine)}</span> <span class="muted">${tr('viewRecipe')}</span></span>
+      <span class="muted">★${r.rating.toFixed(1)}</span></div>`;
+  });
+  html+=`</div><div class="card"><h3>${tr('almostReady')}（${almost.length}）</h3>`;
+  if(almost.length===0) html+=`<div class="empty">—</div>`;
+  almost.forEach(r=>{
+    html+=`<div class="row"><span class="clickable" onclick="showDish('${r.dish.id}')">${r.dish.emoji} ${dishName(r.dish)} <span class="tag">${cuisineName(r.dish.cuisine)}</span><br>
+      <span class="badge-missing">${tr('missing')}：${r.missing.map(m=>ingName(m.n)).join('、')}</span></span>
+      <span class="muted">★${r.rating.toFixed(1)}</span></div>`;
+  });
+  html+=`</div>`;
+  $('page-suggest').innerHTML=html;
+}
+
+// -- 添加新菜 --
+function openAddDish(){
+  const cuisines=['中餐','日餐','韩餐','西餐','其他'];
+  $('adddish').innerHTML=`<div class="detail-inner">
+    <button class="detail-back" onclick="closeAddDish()">${tr('back')}</button>
+    <div class="card"><h3>${tr('addDishBtn')}</h3>
+      <div class="flex" style="margin-bottom:8px">
+        <input type="text" id="ad-name" placeholder="${tr('adNamePh')}" class="grow" style="min-width:0">
+        <select id="ad-cuisine">${cuisines.map(c=>`<option value="${c}">${cuisineName(c)}</option>`).join('')}</select>
+      </div>
+      <p class="muted" style="margin-bottom:6px">${tr('adSearchTip')}</p>
+      <div class="flex">
+        <button class="btn ghost small" onclick="openSearch('xcf')">${tr('adSearchXcf')}</button>
+        <button class="btn ghost small" onclick="openSearch('ckp')">${tr('adSearchCkp')}</button>
+        <button class="btn ghost small" onclick="openSearch('gg')">${tr('adSearchGg')}</button>
+      </div></div>
+    <div class="card">
+      <div class="flex" style="margin-bottom:6px">
+        <input type="text" id="ad-url" placeholder="${tr('adUrlPh')}" class="grow" style="min-width:0">
+        <button class="btn small" onclick="importFromUrl()">${tr('adImport')}</button>
+      </div>
+      <p class="muted">${tr('adCorsTip')}</p></div>
+    <div class="card">
+      <textarea id="ad-text" rows="9" placeholder="${tr('adPastePh')}" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px;font-family:inherit" oninput="previewParse()"></textarea>
+      <div id="ad-preview" class="muted" style="margin:8px 0"></div>
+      <div class="flex">
+        <button class="btn ghost grow" onclick="previewParse(true)">${tr('adParse')}</button>
+        <button class="btn grow" onclick="saveCustomDish()">${tr('adSave')}</button>
+      </div></div></div>`;
+  $('adddish').classList.add('open');
+}
+function closeAddDish(){ $('adddish').classList.remove('open'); }
+function openSearch(site){
+  const name=$('ad-name').value.trim();
+  if(!name){toast(tr('adNeedName'));return;}
+  const urls={
+    xcf:'https://www.xiachufang.com/search/?keyword='+encodeURIComponent(name),
+    ckp:'https://cookpad.com/jp/search/'+encodeURIComponent(name),
+    gg:'https://www.google.com/search?q='+encodeURIComponent(name+(state.lang==='ja'?' レシピ 作り方':' 做法 用料')),
+  };
+  if(typeof window!=='undefined'&&window.open) window.open(urls[site],'_blank','noopener');
+}
+async function importFromUrl(){
+  const url=$('ad-url').value.trim();
+  if(!/^https?:\/\/.+/.test(url)){toast(tr('adBadUrl'));return;}
+  toast(tr('adFetching'));
+  try{
+    let raw=null;
+    if(cloud.on){ // 部署在Vercel时走serverless抓取，无CORS限制
+      try{
+        const pr=await fetch('/api/fetch-recipe?url='+encodeURIComponent(url));
+        if(pr.ok){const j=await pr.json();if(j&&j.text){$('ad-text').value=j.text.slice(0,8000);previewParse();toast(tr('adFetched'));return;}}
+      }catch(e){}
+    }
+    const res=await fetch(url,{mode:'cors'});
+    if(!res.ok) throw new Error('http '+res.status);
+    raw=await res.text();
+    const plain=raw.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ')
+      .replace(/<br\s*\/?>(?=.)/gi,'\n').replace(/<\/(p|li|div|h\d|tr)>/gi,'\n').replace(/<[^>]+>/g,' ')
+      .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    $('ad-text').value=plain.split('\n').map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean).join('\n').slice(0,8000);
+    previewParse();
+    toast(tr('adFetched'));
+  }catch(e){ toast(tr('adCorsFail')); }
+}
+function previewParse(showToast){
+  const {ings,steps}=parseRecipeText($('ad-text').value);
+  let html='';
+  if(ings.length||steps.length){
+    html=`<b>${T[state.lang].adParsed(ings.length,steps.length)}</b>`;
+    if(ings.length) html+=`<br>${tr('adParsedIng')}: ${ings.map(i=>`${i.n} ${i.q}${i.u}`).join('、')}`;
+    if(steps.length) html+=`<br>${tr('adParsedStep')}: ${steps.map((s,i)=>(i+1)+'. '+s.slice(0,18)).join(' / ').slice(0,200)}`;
+  }
+  $('ad-preview').innerHTML=html;
+  return {ings,steps};
+}
+function saveCustomDish(){
+  const name=$('ad-name').value.trim().replace(/[<>"'`]/g,'');
+  if(!name){toast(tr('adNeedName'));return;}
+  const {ings,steps}=parseRecipeText($('ad-text').value);
+  if(ings.length===0||steps.length===0){toast(tr('adNeedData'));return;}
+  const cleanIngs=ings.map(i=>({n:i.n.replace(/[<>"'`]/g,''),q:i.q,u:i.u.replace(/[<>"'`]/g,'')}));
+  const cleanSteps=steps.map(s=>s.replace(/[<>"'`]/g,''));
+  const dish={id:'c'+Date.now().toString(36), name, ja:name, cuisine:$('ad-cuisine').value, emoji:'🍽️',
+    ingredients:cleanIngs, steps:cleanSteps, stepsJa:cleanSteps, custom:true,
+    ref:$('ad-url').value.trim()||null};
+  state.customDishes.push(dish);
+  if(cloud.on)db.customAdd(dish);
+  closeAddDish();
+  commit();
+  toast(tr('adSaved'));
+  showDish(dish.id);
+}
+function deleteCustomDish(id){
+  if(typeof confirm==='function'&&!confirm(tr('delConfirm')))return;
+  state.customDishes=state.customDishes.filter(d=>d.id!==id);
+  DAYS.forEach(d=>MEALS.forEach(m=>{state.plan[d][m]=state.plan[d][m].filter(x=>x!==id);}));
+  delete state.ratings.me[id]; delete state.ratings.partner[id];
+  if(cloud.on)db.customDel(id);
+  closeDish();
+  commit();
+  toast(tr('delDone'));
+}
+
+// -- 菜品详情页 --
+function showDish(id){ state.detailDish=id; renderDetail(); }
+function closeDish(){ state.detailDish=null; $('detail').classList.remove('open'); }
+function renderDetail(){
+  const el=$('detail');
+  if(!state.detailDish){ el.classList.remove('open'); return; }
+  const d=getDish(state.detailDish);
+  if(!d){ closeDish(); return; }
+  const stock=fridgeMap(state.fridge);
+  const steps=state.lang==='ja'?(d.stepsJa||d.steps):d.steps;
+  const refZhUrl='https://www.xiachufang.com/search/?keyword='+encodeURIComponent(d.name);
+  const refJaUrl='https://cookpad.com/jp/search/'+encodeURIComponent(d.ja||d.name);
+  let html=`<div class="detail-inner">
+    <button class="detail-back" onclick="closeDish()">${tr('back')}</button>
+    <div class="detail-head"><div class="big">${d.emoji}</div><h2>${dishName(d)}</h2>
+      <div style="margin-top:6px"><span class="tag">${cuisineName(d.cuisine)}</span>
+      ${isReadyToCook(d,state.fridge,state.purchased)?`<span class="tag green">${tr('ready')}</span>`:`<span class="tag amber">${T[state.lang].missN(missingFor(d,state.fridge,state.purchased).length)}</span>`}
+      <span class="muted" style="margin-left:6px">★${avgRating(d.id).toFixed(1)}</span></div></div>
+    <div class="card"><h3>${tr('ingList')}</h3>`;
+  d.ingredients.forEach(i=>{
+    const enough=(stock[i.n]||0)>=i.q-1e-9||state.purchased[i.n];
+    html+=`<div class="row"><span>${ingName(i.n)}</span>
+      <span class="flex"><span class="muted">${i.q}${unitName(i.u)}</span>
+      ${enough?`<span class="tag green">${tr('haveIt')}</span>`:`<span class="tag amber">${tr('lack')}</span>`}</span></div>`;
+  });
+  html+=`<p class="muted" style="margin-top:8px">${tr('seasoningNote')}</p></div>
+    <div class="card"><h3>${tr('steps')}</h3><ol class="steps-ol">${(steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol></div>
+    <div class="card"><h3>${tr('refTitle')}</h3>
+      ${d.custom&&d.ref?`<a class="ref-link" href="${d.ref}" target="_blank" rel="noopener">${tr('refSource')}</a>`:''}
+      <a class="ref-link" href="${refZhUrl}" target="_blank" rel="noopener">🇨🇳 ${tr('refZh')}</a>
+      <a class="ref-link" href="${refJaUrl}" target="_blank" rel="noopener">🇯🇵 ${tr('refJa')}</a></div>
+    <div class="card">
+      <div class="row"><span class="muted">${tr('myRating')}</span>${starHtml(d.id,'me',state.user==='me')}</div>
+      <div class="row"><span class="muted">${tr('taRating')}</span>${starHtml(d.id,'partner',state.user==='partner')}</div>
+    </div>
+    ${d.custom?`<div style="text-align:center"><button class="btn ghost" onclick="deleteCustomDish('${d.id}')">${tr('delDish')}</button></div>`:''}</div>`;
+  el.innerHTML=html;
+  el.classList.add('open');
+}
+
+function renderAll(){renderHeader();renderPlan();renderDishes();renderFridge();renderShopping();renderSuggest();renderDetail();}
+
+// ---- 启动 ----
+loadState();
+if(CLOUD_ON){emptyLocalData();}
+else{initSync();}
+initCloud();
+renderAll();
+</script>
+</body>
+</html>
