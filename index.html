@@ -78,6 +78,22 @@
   .ref-link{display:inline-block;font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--accent-soft);background:var(--accent-soft);border-radius:14px;padding:5px 12px;margin:4px 6px 0 0}
   .clickable{cursor:pointer}
   .hidden{display:none !important}
+  .tag.blue{background:#eaf2ff;color:#3a8dff}
+  .modewrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;display:flex;gap:4px;margin-bottom:8px}
+  .modeopt{flex:1;text-align:center;padding:9px 4px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+  .modeopt.on{background:var(--accent);color:#fff}
+  .modeopt small{display:block;font-weight:400;font-size:10px;margin-top:2px;opacity:.85}
+  .modehint{font-size:12px;border-radius:10px;padding:9px 11px;margin-bottom:12px;line-height:1.5}
+  .modehint.merge{background:var(--green-soft);color:var(--green)}
+  .modehint.over{background:var(--amber-soft);color:var(--amber)}
+  .stepper{display:flex;align-items:center;background:var(--bg);border-radius:9px;overflow:hidden;flex-shrink:0}
+  .stepper button{width:28px;height:28px;border:none;background:transparent;font-size:16px;color:var(--accent);cursor:pointer;font-weight:600}
+  .stepper span{min-width:26px;text-align:center;font-size:13px;font-weight:600}
+  .scan-item{opacity:1;transition:opacity .2s}
+  .scan-item.removed{opacity:.35}
+  .scan-item.review{outline:1.5px solid var(--amber);outline-offset:-1.5px;border-radius:10px}
+  .scan-warn{color:#c0392b;font-size:12px;margin-top:6px;background:#fdecea;padding:8px 10px;border-radius:8px}
+  .scanline-log{font-size:13px;color:var(--ink);padding:3px 0}
   .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:99}
   .toast.show{opacity:1}
   .toast.sync{background:var(--green)}
@@ -116,6 +132,7 @@
 <div id="detail" class="detail-overlay"></div>
 <div id="adddish" class="detail-overlay"></div>
 <div id="pairing" class="detail-overlay"></div>
+<div id="scan" class="detail-overlay"></div>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -281,6 +298,26 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   online:'🟢 在线',notJoined:'还没加入',lastSeen:t=>`最后活跃：${t}`,justNow:'刚刚',
   minsAgo:n=>`${n}分钟前`,hoursAgo:n=>`${n}小时前`,daysAgo:n=>`${n}天前`,
   meNick:'我的昵称',renamePh:'给小家起个名字',save:'保存',nickSaved:'昵称已保存 ✓',nameSaved:'家庭名已保存 ✓',
+  scanEntry:'📷 拍照识别库存（AI自动清点冰箱）',
+  scanTitle:'拍下你的冰箱',scanSub:'按区域分开拍更准。可拍多张，识别后可逐项调整。',
+  zoneCold:'冷藏室',zoneColdSub:'蔬菜、蛋奶、剩菜',zoneFrozen:'冷冻室',zoneFrozenSub:'肉类、速冻食品',zonePantry:'常温 / 橱柜',zonePantrySub:'主食、调料、干货',
+  scanTip:'💡 拉开抽屉、把叠放的食材稍微散开，识别更准。看不清的会标「待确认」。',
+  scanStartN:n=>`开始识别（已加 ${n} 张）`,scanStartNeed:'先拍一张照片',scanDemo:'不拍照，用演示数据体验流程 →',
+  scanning:'正在识别食材…',scanZoneDone:(z,n)=>`✓ ${z}：识别到 ${n} 项`,
+  scanFail:'识别服务暂时不可用（未配置API key或网络问题），可先用演示数据体验',
+  modeMerge:'保留并新增',modeMergeSub:'智能合并（推荐）',modeOver:'覆盖原库存',modeOverSub:'用这次结果替换',
+  hintMerge:'✅ 与现有库存合并：同一食材自动累加数量，新食材标「新增」。你们的评分记录都会保留。',
+  hintOver:list=>`⚠️ 覆盖模式：用这次识别结果替换整个库存。未拍到的原库存${list?`（${list}）`:''}将被移除。入库后可撤销一次。`,
+  badgeNew:'新增',badgeAdd:n=>`累加 +${n}`,badgeRev:'待确认',badgeOver:'替换',
+  confHi:'识别可信',confLo:'需确认',exNote:(a,b)=>`原有 ${a} → ${b}`,tapConfirm:'点此确认',
+  scanManualAdd:'＋ 手动添加漏识别的食材',sheetAdd:'添加食材',sheetConfirm:'确认这项食材',
+  fCat:'分类',sumActive:'识别有效食材',sumAdd:'与原库存累加',sumNew:'新增到库存',sumReplace:'库存将被替换为',sumRemoved:'原库存移除',
+  warnReview:n=>`还有 ${n} 项「待确认」，请点开核对后再入库`,items:'项',
+  confirmStock:'确认入库',confirmStockRev:n=>`仍有 ${n} 项待确认`,
+  doneTitle:'库存已更新',doneMerge:(n,nw)=>`已把 ${n} 项识别结果合并进库存，其中新增 ${nw} 项。`,doneOver:n=>`库存已替换为本次识别的 ${n} 项。`,
+  nudgeSuggest:'看看现在能做什么菜 ›',nudgeSuggestSub:'根据最新库存为你俩推荐',nudgeShopping:'生成购物清单 ›',nudgeShoppingSub:'对照本周菜单查缺补漏',
+  scanAgain:'↺ 再扫一次',undoOver:'↺ 撤销本次覆盖',undone:'已撤销，库存恢复原样 ✓',
+  catVeg:'蔬菜',catFruit:'水果',catMeat:'肉类',catSea:'海鲜',catEgg:'蛋奶',catBean:'豆制品',catStaple:'主食',catSeasoning:'调料',catOther:'其他',
   cloudTitle:'☁️ 我们的小家',
   cloudNotConfigured:'尚未配置 Supabase 密钥，当前为本地演示模式（数据仅存这台设备）。部署者请按 README 把密钥填入 config.js 后重新发布。',
   authHint:'无需密码：输入邮箱，点邮件里的登录链接即完成登录',authEmailPh:'输入你的邮箱',authSend:'发送登录链接',
@@ -333,6 +370,26 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   online:'🟢 オンライン',notJoined:'未参加',lastSeen:t=>`最終アクティブ：${t}`,justNow:'たった今',
   minsAgo:n=>`${n}分前`,hoursAgo:n=>`${n}時間前`,daysAgo:n=>`${n}日前`,
   meNick:'私のニックネーム',renamePh:'おうちの名前をつける',save:'保存',nickSaved:'保存しました ✓',nameSaved:'保存しました ✓',
+  scanEntry:'📷 写真でAI在庫スキャン（冷蔵庫を自動チェック）',
+  scanTitle:'冷蔵庫を撮影しましょう',scanSub:'エリアごとに撮ると精度が上がります。複数枚OK、あとで1品ずつ調整できます。',
+  zoneCold:'冷蔵室',zoneColdSub:'野菜・卵乳・残り物',zoneFrozen:'冷凍室',zoneFrozenSub:'肉類・冷凍食品',zonePantry:'常温 / 棚',zonePantrySub:'主食・調味料・乾物',
+  scanTip:'💡 引き出しを開け、重なった食材を少し広げると認識しやすくなります。不明瞭なものは「要確認」になります。',
+  scanStartN:n=>`認識開始（${n} 枚追加済み）`,scanStartNeed:'まず1枚撮影してください',scanDemo:'撮影せずデモデータで体験 →',
+  scanning:'食材を認識しています…',scanZoneDone:(z,n)=>`✓ ${z}：${n} 品を認識`,
+  scanFail:'認識サービスが利用できません（APIキー未設定またはネットワーク）。デモデータでお試しください',
+  modeMerge:'残して追加',modeMergeSub:'スマート統合（推奨）',modeOver:'在庫を置き換え',modeOverSub:'今回の結果で置換',
+  hintMerge:'✅ 既存在庫と統合：同じ食材は数量を加算、新しい食材は「新規」になります。評価記録は保持されます。',
+  hintOver:list=>`⚠️ 置き換えモード：今回の認識結果で在庫全体を置き換えます。写っていない在庫${list?`（${list}）`:''}は削除されます。あとで1回だけ取り消せます。`,
+  badgeNew:'新規',badgeAdd:n=>`加算 +${n}`,badgeRev:'要確認',badgeOver:'置換',
+  confHi:'認識OK',confLo:'要確認',exNote:(a,b)=>`元 ${a} → ${b}`,tapConfirm:'タップして確認',
+  scanManualAdd:'＋ 認識漏れを手動で追加',sheetAdd:'食材を追加',sheetConfirm:'この食材を確認',
+  fCat:'カテゴリ',sumActive:'有効な認識結果',sumAdd:'既存在庫に加算',sumNew:'在庫に新規追加',sumReplace:'在庫の置き換え後',sumRemoved:'削除される在庫',
+  warnReview:n=>`「要確認」が ${n} 品あります。確認してから登録してください`,items:'品',
+  confirmStock:'在庫に登録',confirmStockRev:n=>`要確認 ${n} 品あり`,
+  doneTitle:'在庫を更新しました',doneMerge:(n,nw)=>`${n} 品を在庫に統合しました（うち新規 ${nw} 品）。`,doneOver:n=>`在庫を今回の ${n} 品に置き換えました。`,
+  nudgeSuggest:'今作れる料理を見る ›',nudgeSuggestSub:'最新の在庫からおすすめ',nudgeShopping:'買い物リストを作る ›',nudgeShoppingSub:'今週の献立と照合',
+  scanAgain:'↺ もう一度スキャン',undoOver:'↺ 置き換えを取り消す',undone:'取り消しました。在庫は元に戻りました ✓',
+  catVeg:'野菜',catFruit:'果物',catMeat:'肉類',catSea:'魚介',catEgg:'卵・乳製品',catBean:'大豆製品',catStaple:'主食',catSeasoning:'調味料',catOther:'その他',
   cloudTitle:'☁️ ふたりのおうち',
   cloudNotConfigured:'Supabaseキーが未設定のため、ローカルデモモードで動作中です（データはこの端末のみ）。READMEに従って config.js を設定してください。',
   authHint:'パスワード不要：メールを入力し、届いたリンクをタップするだけでログイン',authEmailPh:'メールアドレスを入力',authSend:'ログインリンクを送信',
@@ -399,8 +456,10 @@ function unitName(u){return state.lang==='ja'?(UNIT_JA[u]||u):u;}
 function cuisineName(c){return state.lang==='ja'?(CUISINE_JA[c]||c):c;}
 function dayName(d){return state.lang==='ja'?(DAY_JA[d]||d):d;}
 function mealName(m){return state.lang==='ja'?(MEAL_JA[m]||m):m;}
-// 输入统一为中文主键（日语模式下可输入日语名）
-function canonIng(n){return ING_JA_REV[n]||n;}
+// 常见别名→主键（识别结果与手动输入共用）
+const ING_SYN={'西红柿':'番茄','圣女果':'番茄','蕃茄':'番茄','马铃薯':'土豆','洋芋':'土豆','大葱':'葱','小葱':'葱','香葱':'葱','青葱':'葱','玉葱':'洋葱','红萝卜':'胡萝卜','人参？':'胡萝卜','蒜':'大蒜','蒜头':'大蒜','西蓝花':'西兰花','鸡卵':'鸡蛋','鸡子':'鸡蛋','面包':'吐司','三文鱼柳':'三文鱼','萨门鱼':'三文鱼'};
+// 输入统一为中文主键（日语名/别名均可）
+function canonIng(n){n=String(n||'').trim();return ING_SYN[n]||ING_JA_REV[n]||n;}
 
 // ---- 核心计算 ----
 function allDishes(){ return DISHES.concat(state.customDishes||[]); }
@@ -760,6 +819,10 @@ const db={
     await sb.from('custom_dishes').delete().eq('id',id);
     await sb.from('plan_entries').delete().match({household_id:cloud.hid,dish_id:id});
   });},
+  fridgeReplace(items){cdb(async sb=>{
+    await sb.from('fridge_items').delete().eq('household_id',cloud.hid);
+    for(const it of items)await sb.from('fridge_items').insert({household_id:cloud.hid,n:it.n,q:it.q,u:it.u});
+  });},
   clearAll(){cdb(async sb=>{
     for(const tb of ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes'])
       await sb.from(tb).delete().eq('household_id',cloud.hid);
@@ -960,6 +1023,7 @@ function toggleLang(){
   state.lang=langs[(langs.indexOf(state.lang)+1)%langs.length];
   saveState();
   renderAll();
+  if($('scan').classList.contains('open'))renderScan();
   ['pairing','adddish'].forEach(ov=>{
     if($(ov).classList.contains('open')){
       const keep={};
@@ -1098,7 +1162,7 @@ function setCuisine(c){state.cuisineFilter=c;renderDishes();}
 
 // -- 冰箱页 --
 function renderFridge(){
-  let html=`<div class="photo-hint" onclick="toast(tr('photoToast'))">${tr('photoHint')}</div>`;
+  let html=`<div class="photo-hint" onclick="openScan()">${tr('scanEntry')}</div>`;
   html+=`<div class="card"><h3>${tr('stock')}(${state.fridge.length})</h3>`;
   if(state.fridge.length===0) html+=`<div class="empty">${tr('emptyFridge')}</div>`;
   state.fridge.forEach((i,idx)=>{
@@ -1300,6 +1364,270 @@ function deleteCustomDish(id){
   closeDish();
   commit();
   toast(tr('delDone'));
+}
+
+// -- 拍照识别库存 --
+const SCAN_ZONES=['冷藏','冷冻','常温'];
+const ZONE_META={'冷藏':{ic:'❄️',t:'zoneCold',s:'zoneColdSub'},'冷冻':{ic:'🧊',t:'zoneFrozen',s:'zoneFrozenSub'},'常温':{ic:'🗄️',t:'zonePantry',s:'zonePantrySub'}};
+const CATS=['蔬菜','水果','肉类','海鲜','蛋奶','豆制品','主食','调料','其他'];
+const CAT_KEY={'蔬菜':'catVeg','水果':'catFruit','肉类':'catMeat','海鲜':'catSea','蛋奶':'catEgg','豆制品':'catBean','主食':'catStaple','调料':'catSeasoning','其他':'catOther'};
+const CAT_EMO={'蔬菜':'🥬','水果':'🍎','肉类':'🥩','海鲜':'🐟','蛋奶':'🥚','豆制品':'🫧','主食':'🍚','调料':'🧂','其他':'📦'};
+let scanUid=1;
+const scanState={step:'capture',zones:{},items:[],mode:'merge',undo:null,editing:null,log:[],doneMsg:'',busy:false};
+function resetScan(){
+  scanState.step='capture';scanState.zones={};SCAN_ZONES.forEach(z=>scanState.zones[z]=[]);
+  scanState.items=[];scanState.mode='merge';scanState.undo=null;scanState.editing=null;scanState.log=[];scanState.busy=false;
+}
+function openScan(){resetScan();renderScan();$('scan').classList.add('open');}
+function closeScan(){$('scan').classList.remove('open');}
+function scanPhotoCount(){return SCAN_ZONES.reduce((s,z)=>s+scanState.zones[z].length,0);}
+// 前端压缩到1024px（控制token成本）
+function compressImage(file){
+  return new Promise((resolve,reject)=>{
+    if(typeof FileReader==='undefined'){reject(new Error('no FileReader'));return;}
+    const fr=new FileReader();
+    fr.onload=()=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=1024;
+        let w=img.width,h=img.height;
+        if(w>MAX||h>MAX){const k=MAX/Math.max(w,h);w=Math.round(w*k);h=Math.round(h*k);}
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(cv.toDataURL('image/jpeg',0.8));
+      };
+      img.onerror=reject;img.src=fr.result;
+    };
+    fr.onerror=reject;fr.readAsDataURL(file);
+  });
+}
+async function onZoneFiles(zone,input){
+  const files=Array.from(input.files||[]).slice(0,4);
+  for(const f of files){
+    try{scanState.zones[zone].push(await compressImage(f));}catch(e){}
+  }
+  input.value='';
+  renderScan();
+}
+async function startScan(useDemo){
+  if(scanState.busy)return;
+  if(useDemo){ingestScanItems(demoScanItems());return;}
+  if(scanPhotoCount()===0){toast(tr('scanStartNeed'));return;}
+  scanState.busy=true;scanState.step='scanning';scanState.log=[];renderScan();
+  const collected=[];
+  try{
+    for(const z of SCAN_ZONES){
+      const imgs=scanState.zones[z];
+      if(!imgs.length)continue;
+      const res=await fetch('/api/scan-fridge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imgs,zone:z})});
+      if(!res.ok)throw new Error('http '+res.status);
+      const j=await res.json();
+      (j.items||[]).forEach(it=>collected.push(it));
+      scanState.log.push(T[state.lang].scanZoneDone(zoneName(z),(j.items||[]).length));
+      renderScan();
+    }
+    scanState.busy=false;
+    ingestScanItems(collected);
+  }catch(e){
+    scanState.busy=false;scanState.step='capture';renderScan();
+    toast(tr('scanFail'));
+  }
+}
+function demoScanItems(){
+  return [
+    {name:'鸡蛋',qty:6,unit:'个',category:'蛋奶',confidence:0.96},
+    {name:'西红柿',qty:4,unit:'个',category:'蔬菜',confidence:0.95},
+    {name:'牛奶',qty:2,unit:'盒',category:'蛋奶',confidence:0.92},
+    {name:'西兰花',qty:1,unit:'颗',category:'蔬菜',confidence:0.9},
+    {name:'豆腐',qty:1,unit:'盒',category:'豆制品',confidence:0.58},
+    {name:'胡萝卜',qty:3,unit:'根',category:'蔬菜',confidence:0.94},
+    {name:'???',qty:1,unit:'份',category:'其他',confidence:0.3},
+  ];
+}
+// 识别结果 → 归一 → 去重合并 → 标注待确认
+function ingestScanItems(raw){
+  const merged=[];
+  (raw||[]).forEach(r=>{
+    const n=canonIng(r.name)||'???';
+    const q=Math.max(0.1,Number(r.qty)||1);
+    const u=normUnit(String(r.unit||'份').trim());
+    const cat=CATS.includes(r.category)?r.category:'其他';
+    const conf=r.confidence!=null?Number(r.confidence):0.9;
+    const ex=n!=='???'&&merged.find(m=>m.n===n&&m.u===u);
+    if(ex){ex.q+=q;ex.conf=Math.min(ex.conf,conf);}
+    else merged.push({id:'sc'+(scanUid++),n,q,u,cat,conf,removed:false});
+  });
+  merged.forEach(m=>{m.review=m.conf<0.7||m.n==='???';});
+  scanState.items=merged;
+  scanState.step='result';
+  renderScan();
+}
+function zoneName(z){return state.lang==='ja'?({'冷藏':'冷蔵','冷冻':'冷凍','常温':'常温'})[z]:z;}
+function catName(c){return tr(CAT_KEY[c]||'catOther');}
+function scanStatusOf(it){
+  const ex=state.fridge.find(f=>f.n===it.n&&f.u===it.u);
+  if(scanState.mode==='over')return {badge:'over',ex};
+  if(ex)return {badge:'add',ex};
+  return {badge:'new'};
+}
+function scanActive(){return scanState.items.filter(i=>!i.removed);}
+function scanRemovedOld(){ // 覆盖模式下将被移除的原库存
+  const act=scanActive();
+  return state.fridge.filter(f=>!act.find(i=>i.n===f.n)).map(f=>f.n);
+}
+function scanSetMode(m){scanState.mode=m;renderScan();}
+function scanStep(id,d){const it=scanState.items.find(i=>i.id===id);if(!it)return;it.q=Math.max(1,it.q+d);renderScan();}
+function scanToggle(id){const it=scanState.items.find(i=>i.id===id);if(!it)return;it.removed=!it.removed;renderScan();}
+function scanOpenAdd(){scanState.editing={id:null,n:'',q:1,u:'个',cat:'蔬菜'};renderScan();}
+function scanEdit(id){
+  const it=scanState.items.find(i=>i.id===id);if(!it)return;
+  scanState.editing={id:it.id,n:it.n==='???'?'':it.n,q:it.q,u:it.u,cat:it.cat};renderScan();
+}
+function scanCancelSheet(){scanState.editing=null;renderScan();}
+function scanSaveSheet(){
+  const n=canonIng($('sc-name').value.trim().replace(/[<>"'`]/g,''));
+  const q=Math.max(1,parseFloat($('sc-qty').value)||1);
+  const u=($('sc-unit').value.trim()||'份').replace(/[<>"'`]/g,'');
+  const cat=$('sc-cat').value;
+  if(!n){toast(tr('fillIn'));return;}
+  if(scanState.editing.id){
+    const it=scanState.items.find(i=>i.id===scanState.editing.id);
+    it.n=n;it.q=q;it.u=u;it.cat=cat;it.review=false;it.conf=1;
+  }else{
+    scanState.items.push({id:'sc'+(scanUid++),n,q,u,cat,conf:1,review:false,removed:false});
+  }
+  scanState.editing=null;renderScan();
+}
+function scanConfirm(){
+  const active=scanActive();
+  const review=active.filter(i=>i.review).length;
+  if(review){toast(T[state.lang].warnReview(review));return;}
+  if(!active.length){toast(tr('scanStartNeed'));return;}
+  if(scanState.mode==='merge'){
+    const ch={updates:[],inserts:[],unmark:[]};
+    let nw=0;
+    active.forEach(it=>{
+      const ex=state.fridge.find(f=>f.n===it.n&&f.u===it.u);
+      if(ex){
+        ex.q+=it.q;
+        if(ex._id)ch.updates.push({id:ex._id,q:ex.q});else ch.inserts.push({n:it.n,q:it.q,u:it.u});
+      }else{
+        state.fridge.push({n:it.n,q:it.q,u:it.u});
+        ch.inserts.push({n:it.n,q:it.q,u:it.u});nw++;
+      }
+    });
+    if(cloud.on)db.stock(ch);
+    scanState.doneMsg=T[state.lang].doneMerge(active.length,nw);
+    scanState.undo=null;
+  }else{
+    scanState.undo=state.fridge.map(f=>({n:f.n,q:f.q,u:f.u}));
+    state.fridge=active.map(it=>({n:it.n,q:it.q,u:it.u}));
+    if(cloud.on)db.fridgeReplace(state.fridge);
+    scanState.doneMsg=T[state.lang].doneOver(active.length);
+  }
+  commit();
+  scanState.step='done';renderScan();
+}
+function scanUndo(){
+  if(!scanState.undo)return;
+  state.fridge=scanState.undo.map(x=>({n:x.n,q:x.q,u:x.u}));
+  if(cloud.on)db.fridgeReplace(state.fridge);
+  scanState.undo=null;
+  commit();renderScan();toast(tr('undone'));
+}
+function scanGoto(tab){closeScan();switchTab(tab);}
+function renderScan(){
+  const el=$('scan');
+  let body='';
+  if(scanState.step==='capture'){
+    const n=scanPhotoCount();
+    body=`<div class="card"><h3>📷 ${tr('scanTitle')}</h3><p class="muted" style="margin-bottom:10px">${tr('scanSub')}</p>
+      ${SCAN_ZONES.map(z=>{const m=ZONE_META[z];
+        return `<div class="row"><span style="font-size:20px">${m.ic}</span>
+          <span class="grow"><b style="font-size:13px">${tr(m.t)}</b><br><span class="muted">${tr(m.s)}</span></span>
+          <span class="muted">${scanState.zones[z].length?'📷×'+scanState.zones[z].length:''}</span>
+          <input type="file" accept="image/*" capture="environment" multiple style="display:none" id="zin-${z}" onchange="onZoneFiles('${z}',this)">
+          <button class="btn ghost small" onclick="document.getElementById('zin-${z}').click()">＋</button></div>`;}).join('')}
+      <p class="muted" style="margin-top:10px">${tr('scanTip')}</p></div>
+      <button class="btn" style="width:100%" ${n?'':'disabled style="width:100%;opacity:.5"'} onclick="startScan()">${n?T[state.lang].scanStartN(n):tr('scanStartNeed')}</button>
+      <p class="muted clickable" style="text-align:center;margin-top:10px;text-decoration:underline" onclick="startScan(true)">${tr('scanDemo')}</p>`;
+  }else if(scanState.step==='scanning'){
+    body=`<div class="card" style="text-align:center;padding:30px 14px">
+      <div style="font-size:44px">🧊</div>
+      <p style="font-weight:600;margin:12px 0">${tr('scanning')}</p>
+      <div style="text-align:left;max-width:260px;margin:0 auto">${scanState.log.map(l=>`<div class="scanline-log">${l}</div>`).join('')}</div></div>`;
+  }else if(scanState.step==='result'){
+    const removedOld=scanRemovedOld();
+    body=`<div class="modewrap">
+      <div class="modeopt ${scanState.mode==='merge'?'on':''}" onclick="scanSetMode('merge')">${tr('modeMerge')}<small>${tr('modeMergeSub')}</small></div>
+      <div class="modeopt ${scanState.mode==='over'?'on':''}" onclick="scanSetMode('over')">${tr('modeOver')}<small>${tr('modeOverSub')}</small></div></div>
+      <div class="modehint ${scanState.mode}">${scanState.mode==='merge'?tr('hintMerge'):T[state.lang].hintOver(removedOld.slice(0,4).map(ingName).join('、')+(removedOld.length>4?'…':''))}</div>`;
+    if(scanState.editing){
+      const ed=scanState.editing;
+      body+=`<div class="card" style="border-color:var(--accent)"><h3>${ed.id?tr('sheetConfirm'):tr('sheetAdd')}</h3>
+        <div class="flex" style="margin-bottom:8px">
+          <input type="text" id="sc-name" value="${ed.n}" placeholder="${tr('ingName')}" class="grow" style="min-width:0">
+          <input type="number" id="sc-qty" value="${ed.q}" style="width:64px" min="1">
+          <input type="text" id="sc-unit" value="${ed.u}" style="width:56px"></div>
+        <div class="flex" style="margin-bottom:10px"><span class="muted">${tr('fCat')}</span>
+          <select id="sc-cat" class="grow">${CATS.map(c=>`<option value="${c}" ${c===ed.cat?'selected':''}>${CAT_EMO[c]} ${catName(c)}</option>`).join('')}</select></div>
+        <div class="flex"><button class="btn ghost grow" onclick="scanCancelSheet()">${tr('back')}</button>
+        <button class="btn grow" onclick="scanSaveSheet()">${tr('save')}</button></div></div>`;
+    }
+    const groups={};
+    scanState.items.forEach(it=>{(groups[it.cat]=groups[it.cat]||[]).push(it);});
+    Object.keys(groups).forEach(cat=>{
+      body+=`<p class="muted" style="margin:10px 4px 4px;font-weight:600">${CAT_EMO[cat]} ${catName(cat)}</p>`;
+      groups[cat].forEach(it=>{
+        const st=scanStatusOf(it);
+        let badge='';
+        if(it.review)badge=`<span class="tag amber">${tr('badgeRev')}</span>`;
+        else if(st.badge==='add')badge=`<span class="tag green">${T[state.lang].badgeAdd(it.q)}</span>`;
+        else if(st.badge==='new')badge=`<span class="tag blue">${tr('badgeNew')}</span>`;
+        else badge=`<span class="tag">${tr('badgeOver')}</span>`;
+        const exNote=(scanState.mode==='merge'&&st.ex)?T[state.lang].exNote(st.ex.q+unitName(st.ex.u),(st.ex.q+it.q)+unitName(it.u)):'';
+        body+=`<div class="card scan-item ${it.removed?'removed':''} ${it.review?'review':''}" style="padding:10px 12px;margin-bottom:8px">
+          <div class="flex">
+            <span class="grow" style="min-width:0">
+              <b style="font-size:14px" class="${it.review?'clickable':''}" ${it.review?`onclick="scanEdit('${it.id}')" style="font-size:14px;color:var(--amber);text-decoration:underline"`:''}>${it.n==='???'?'❓ '+tr('tapConfirm'):ingName(it.n)}</b> ${badge}<br>
+              <span class="muted">${it.conf>=0.7?tr('confHi'):tr('confLo')}${exNote?' · '+exNote:''}</span></span>
+            <span class="stepper"><button onclick="scanStep('${it.id}',-1)">－</button><span>${it.q}</span><button onclick="scanStep('${it.id}',1)">＋</button></span>
+            <button class="btn ghost small" onclick="scanToggle('${it.id}')">${it.removed?'↺':'✕'}</button>
+          </div></div>`;
+      });
+    });
+    body+=`<div class="photo-hint" onclick="scanOpenAdd()">${tr('scanManualAdd')}</div>`;
+    const active=scanActive(), review=active.filter(i=>i.review).length;
+    body+=`<div class="card">`;
+    if(scanState.mode==='merge'){
+      const add=active.filter(i=>state.fridge.find(f=>f.n===i.n&&f.u===i.u)).length;
+      body+=`<div class="row"><span class="muted">${tr('sumActive')}</span><b>${active.length} ${tr('items')}</b></div>
+        <div class="row"><span class="muted">${tr('sumAdd')}</span><b>${add} ${tr('items')}</b></div>
+        <div class="row"><span class="muted">${tr('sumNew')}</span><b>${active.length-add} ${tr('items')}</b></div>`;
+    }else{
+      body+=`<div class="row"><span class="muted">${tr('sumReplace')}</span><b>${active.length} ${tr('items')}</b></div>
+        <div class="row"><span class="muted">${tr('sumRemoved')}</span><b>${removedOld.length} ${tr('items')}</b></div>`;
+    }
+    if(review)body+=`<div class="scan-warn">${T[state.lang].warnReview(review)}</div>`;
+    body+=`</div>
+      <button class="btn" style="width:100%" onclick="scanConfirm()">${review?T[state.lang].confirmStockRev(review)+' · ':''}${tr('confirmStock')}</button>`;
+  }else{ // done
+    body=`<div class="card" style="text-align:center;padding:26px 14px">
+      <div style="font-size:48px">✅</div>
+      <h3 style="margin:10px 0 6px">${tr('doneTitle')}</h3>
+      <p class="muted">${scanState.doneMsg}</p>
+      ${scanState.undo?`<button class="btn ghost" style="margin-top:10px" onclick="scanUndo()">${tr('undoOver')}</button>`:''}</div>
+      <div class="card clickable" onclick="scanGoto('suggest')"><div class="flex"><span style="font-size:22px">🍳</span>
+        <span class="grow"><b style="font-size:14px">${tr('nudgeSuggest')}</b><br><span class="muted">${tr('nudgeSuggestSub')}</span></span></div></div>
+      <div class="card clickable" onclick="scanGoto('shopping')"><div class="flex"><span style="font-size:22px">🛒</span>
+        <span class="grow"><b style="font-size:14px">${tr('nudgeShopping')}</b><br><span class="muted">${tr('nudgeShoppingSub')}</span></span></div></div>
+      <button class="btn ghost" style="width:100%" onclick="openScan()">${tr('scanAgain')}</button>`;
+  }
+  el.innerHTML=`<div class="detail-inner">
+    <div class="flex" style="justify-content:space-between;margin-bottom:4px">
+      <button class="detail-back" onclick="closeScan()">${tr('back')}</button>
+      <button class="detail-back" onclick="toggleLang()">${tr('langBtn')}</button>
+    </div>${body}</div>`;
 }
 
 // -- 菜品详情页 --
