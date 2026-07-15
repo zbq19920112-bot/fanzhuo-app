@@ -276,7 +276,11 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   cloudStatusOff:'⚪ 本地演示模式 · 数据仅存本机（点击查看说明）',
   cloudNeedLogin:'🟠 未登录 · 点击登录，两人即可跨设备同步',
   cloudNeedPair:'🟡 已登录 · 点击创建或加入你们的小家',
-  cloudOn:c=>`🟢 云同步中 · 我们的小家 ${c}`,
+  cloudOn:(c,n)=>`🟢 ${n} · 云同步中 · 邀请码 ${c}`,hhDefault:'我们的小家',
+  weekPrev:'上一周',weekNext:'下一周',weekThis:'本周',weekPast:'📖 履历',weekFuture:'计划',weekBackTo:'↩ 回到本周',
+  online:'🟢 在线',notJoined:'还没加入',lastSeen:t=>`最后活跃：${t}`,justNow:'刚刚',
+  minsAgo:n=>`${n}分钟前`,hoursAgo:n=>`${n}小时前`,daysAgo:n=>`${n}天前`,
+  meNick:'我的昵称',renamePh:'给小家起个名字',save:'保存',nickSaved:'昵称已保存 ✓',nameSaved:'家庭名已保存 ✓',
   cloudTitle:'☁️ 我们的小家',
   cloudNotConfigured:'尚未配置 Supabase 密钥，当前为本地演示模式（数据仅存这台设备）。部署者请按 README 把密钥填入 config.js 后重新发布。',
   authHint:'无需密码：输入邮箱，点邮件里的登录链接即完成登录',authEmailPh:'输入你的邮箱',authSend:'发送登录链接',
@@ -324,7 +328,11 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   cloudStatusOff:'⚪ ローカルデモモード · データはこの端末のみ（タップで詳細）',
   cloudNeedLogin:'🟠 未ログイン · タップしてログインすると2人で同期できます',
   cloudNeedPair:'🟡 ログイン済 · タップして2人の「おうち」を作成/参加',
-  cloudOn:c=>`🟢 クラウド同期中 · おうち ${c}`,
+  cloudOn:(c,n)=>`🟢 ${n} · 同期中 · 招待コード ${c}`,hhDefault:'ふたりのおうち',
+  weekPrev:'前の週',weekNext:'次の週',weekThis:'今週',weekPast:'📖 履歴',weekFuture:'予定',weekBackTo:'↩ 今週に戻る',
+  online:'🟢 オンライン',notJoined:'未参加',lastSeen:t=>`最終アクティブ：${t}`,justNow:'たった今',
+  minsAgo:n=>`${n}分前`,hoursAgo:n=>`${n}時間前`,daysAgo:n=>`${n}日前`,
+  meNick:'私のニックネーム',renamePh:'おうちの名前をつける',save:'保存',nickSaved:'保存しました ✓',nameSaved:'保存しました ✓',
   cloudTitle:'☁️ ふたりのおうち',
   cloudNotConfigured:'Supabaseキーが未設定のため、ローカルデモモードで動作中です（データはこの端末のみ）。READMEに従って config.js を設定してください。',
   authHint:'パスワード不要：メールを入力し、届いたリンクをタップするだけでログイン',authEmailPh:'メールアドレスを入力',authSend:'ログインリンクを送信',
@@ -345,12 +353,27 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   clearCloud:'クラウドデータを消去',clearCloudConfirm:'ふたりのクラウドデータ（献立/冷蔵庫/評価/オリジナルレシピ）をすべて消去しますか？'}
 };
 
+// ---- 周日期辅助 ----
+function pad2(n){return String(n).padStart(2,'0');}
+function isoOf(dt){return dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate());}
+function mondayISO(d){
+  const dt=d?new Date(d+'T00:00:00'):new Date();
+  dt.setDate(dt.getDate()-((dt.getDay()+6)%7));
+  return isoOf(dt);
+}
+function addDaysISO(iso,n){const dt=new Date(iso+'T00:00:00');dt.setDate(dt.getDate()+n);return isoOf(dt);}
+function fmtMD(iso){const p=iso.split('-');return Number(p[1])+'/'+Number(p[2]);}
+function emptyWeek(){const p={};DAYS.forEach(d=>p[d]={'早餐':[],'午餐':[],'晚餐':[]});return p;}
+function getWeekPlan(w){if(!state.planWeeks[w])state.planWeeks[w]=emptyWeek();return state.planWeeks[w];}
+function currentWeekPlan(){return getWeekPlan(mondayISO());}
+function viewedPlan(){return getWeekPlan(state.viewWeek);}
+
 // ---- 状态 ----
 function defaultState(){
-  const plan={};
-  DAYS.forEach(d=>plan[d]={'早餐':[],'午餐':[],'晚餐':[]});
+  const plan=emptyWeek();
   plan['周一']={'早餐':['d12'],'午餐':['d1'],'晚餐':['d6','d7']};
   plan['周二']={'早餐':['d4'],'午餐':['d5'],'晚餐':['d8']};
+  const planWeeks={};planWeeks[mondayISO()]=plan;
   return {
     ratings:{me:{d1:5,d2:4,d5:5,d6:4,d8:3,d10:4,d11:5,d12:3},
              partner:{d1:4,d2:5,d3:5,d5:3,d6:5,d8:5,d9:4,d10:3,d12:4}},
@@ -358,14 +381,15 @@ function defaultState(){
       {n:'大米',q:5,u:'杯'},{n:'豆腐',q:1,u:'块'},{n:'洋葱',q:2,u:'个'},
       {n:'土豆',q:3,u:'个'},{n:'胡萝卜',q:2,u:'根'},{n:'味噌',q:6,u:'勺'},
       {n:'鸡腿肉',q:300,u:'g'},{n:'吐司',q:4,u:'片'}],
-    plan, purchased:{}, customDishes:[],
+    planWeeks, purchased:{}, customDishes:[],
   };
 }
 const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
 const MEALS=['早餐','午餐','晚餐'];
-const SYNC_KEYS=['ratings','fridge','plan','purchased','customDishes'];
+const SYNC_KEYS=['ratings','fridge','planWeeks','purchased','customDishes'];
 
-const state=Object.assign({user:'me',lang:'zh',activeDay:'周一',cuisineFilter:'全部',detailDish:null},defaultState());
+const state=Object.assign({user:'me',lang:'zh',activeDay:'周一',cuisineFilter:'全部',detailDish:null,viewWeek:null},defaultState());
+state.viewWeek=mondayISO();
 
 // ---- i18n helpers ----
 function tr(key){const v=T[state.lang][key];return v===undefined?key:v;}
@@ -545,7 +569,12 @@ function loadState(){
   try{
     if(!CLOUD_ON){
       const raw=localStorage.getItem(LS_KEY);
-      if(raw){const s=JSON.parse(raw);SYNC_KEYS.forEach(k=>{if(s[k]!=null)state[k]=s[k];});if(s.ver)state.ver=s.ver;}
+      if(raw){
+        const s=JSON.parse(raw);
+        SYNC_KEYS.forEach(k=>{if(s[k]!=null)state[k]=s[k];});
+        if(s.plan&&!s.planWeeks){state.planWeeks={};state.planWeeks[mondayISO()]=s.plan;} // 旧版数据迁移
+        if(s.ver)state.ver=s.ver;
+      }
     }
     const p=localStorage.getItem(LS_PREFS);
     if(p){const q=JSON.parse(p);if(q.lang)state.lang=q.lang;if(q.user)state.user=q.user;}
@@ -591,13 +620,13 @@ function cloudClient(){
 }
 function emptyLocalData(){
   state.fridge=[];state.purchased={};state.customDishes=[];state.ratings={me:{},partner:{}};
-  const plan={};DAYS.forEach(d=>plan[d]={'早餐':[],'午餐':[],'晚餐':[]});state.plan=plan;
+  state.planWeeks={};
 }
 function cloudStatusText(){
   if(!cloud.on)return tr('cloudStatusOff');
   if(!cloud.session)return tr('cloudNeedLogin');
   if(!cloud.hid)return tr('cloudNeedPair');
-  return T[state.lang].cloudOn(cloud.invite);
+  return T[state.lang].cloudOn(cloud.invite,cloud.hhName||tr('hhDefault'));
 }
 function checkAuthUrlError(){
   if(typeof location==='undefined')return null;
@@ -632,9 +661,17 @@ async function afterAuth(){
   const row=Array.isArray(data)?data[0]:data;
   if(!row){cloud.hid=null;renderHeader();openPairing();return;}
   cloud.hid=row.household_id;cloud.invite=row.invite_code;cloud.members=Number(row.member_count)||1;
+  cloud.hhName=row.name||null;
   await cloudLoadAll();
   cloudSubscribe();
+  startHeartbeat();
   cloud.ready=true;
+  // 默认昵称=邮箱前缀
+  const me=myRow();
+  if(me&&!me.display_name){
+    const nick=String(cloud.session.user.email).split('@')[0].slice(0,20);
+    try{await cloudClient().from('household_members').update({display_name:nick}).match({household_id:cloud.hid,user_id:cloud.myUid});me.display_name=nick;}catch(e){}
+  }
   // 面板开着（刚创建/加入小家）则原地刷新让用户看到邀请码；否则保持关闭
   if($('pairing').classList.contains('open'))renderPairing();
   renderAll();
@@ -642,10 +679,15 @@ async function afterAuth(){
 function applyCloudTables(t){
   if(t.fridge)state.fridge=t.fridge.map(x=>({_id:x.id,n:x.n,q:Number(x.q),u:x.u}));
   if(t.plan){
-    const plan={};DAYS.forEach(d=>plan[d]={'早餐':[],'午餐':[],'晚餐':[]});
-    t.plan.forEach(x=>{if(plan[x.day]&&plan[x.day][x.meal]&&!plan[x.day][x.meal].includes(x.dish_id))plan[x.day][x.meal].push(x.dish_id);});
-    state.plan=plan;
+    const pw={};
+    t.plan.forEach(x=>{
+      const w=x.week_start||mondayISO();
+      if(!pw[w])pw[w]=emptyWeek();
+      if(pw[w][x.day]&&pw[w][x.day][x.meal]&&!pw[w][x.day][x.meal].includes(x.dish_id))pw[w][x.day][x.meal].push(x.dish_id);
+    });
+    state.planWeeks=pw;
   }
+  if(t.members){cloud.memberRows=t.members;cloud.members=t.members.length;}
   if(t.purchased){state.purchased={};t.purchased.forEach(x=>state.purchased[x.name]=true);}
   if(t.ratings){
     state.ratings={me:{},partner:{}};
@@ -655,20 +697,23 @@ function applyCloudTables(t){
 }
 async function cloudLoadAll(){
   const sb=cloudClient();
-  const [f,p,pu,r,cd]=await Promise.all([
+  const [f,p,pu,r,cd,mb,hh]=await Promise.all([
     sb.from('fridge_items').select('*').eq('household_id',cloud.hid),
     sb.from('plan_entries').select('*').eq('household_id',cloud.hid),
     sb.from('purchased_items').select('*').eq('household_id',cloud.hid),
     sb.from('ratings').select('*').eq('household_id',cloud.hid),
     sb.from('custom_dishes').select('*').eq('household_id',cloud.hid),
+    sb.from('household_members').select('*').eq('household_id',cloud.hid),
+    sb.from('households').select('*').eq('id',cloud.hid),
   ]);
-  applyCloudTables({fridge:f.data||[],plan:p.data||[],purchased:pu.data||[],ratings:r.data||[],custom:cd.data||[]});
+  applyCloudTables({fridge:f.data||[],plan:p.data||[],purchased:pu.data||[],ratings:r.data||[],custom:cd.data||[],members:mb.data||[]});
+  if(hh.data&&hh.data[0])cloud.hhName=hh.data[0].name||cloud.hhName;
 }
 let refetchTimer=null;
 function cloudSubscribe(){
   const sb=cloudClient();
   const ch=sb.channel('hh-'+cloud.hid);
-  ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes'].forEach(tb=>{
+  ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes','household_members'].forEach(tb=>{
     ch.on('postgres_changes',{event:'*',schema:'public',table:tb,filter:'household_id=eq.'+cloud.hid},()=>{
       clearTimeout(refetchTimer);
       refetchTimer=setTimeout(async()=>{await cloudLoadAll();renderAll();toast(tr('synced'),true);},250);
@@ -688,8 +733,8 @@ const db={
     if(val==null)await sb.from('ratings').delete().match({household_id:cloud.hid,user_id:cloud.myUid,dish_id:dishId});
     else await sb.from('ratings').upsert({household_id:cloud.hid,user_id:cloud.myUid,dish_id:dishId,rating:val});
   });},
-  planAdd(day,meal,dishId){cdb(sb=>sb.from('plan_entries').upsert({household_id:cloud.hid,day,meal,dish_id:dishId}));},
-  planDel(day,meal,dishId){cdb(sb=>sb.from('plan_entries').delete().match({household_id:cloud.hid,day,meal,dish_id:dishId}));},
+  planAdd(week,day,meal,dishId){cdb(sb=>sb.from('plan_entries').upsert({household_id:cloud.hid,week_start:week,day,meal,dish_id:dishId}));},
+  planDel(week,day,meal,dishId){cdb(sb=>sb.from('plan_entries').delete().match({household_id:cloud.hid,week_start:week,day,meal,dish_id:dishId}));},
   fridgeAdd(n,u){cdb(async sb=>{
     const ex=state.fridge.find(i=>i.n===n&&i.u===u);
     if(ex&&ex._id)await sb.from('fridge_items').update({q:ex.q}).eq('id',ex._id);
@@ -787,7 +832,8 @@ async function hhJoin(){
 async function doLogout(){
   const sb=cloudClient();
   try{await sb.auth.signOut();}catch(e){}
-  cloud.session=null;cloud.myUid=null;cloud.hid=null;cloud.invite=null;cloud.ready=false;cloud.sentTo=null;
+  cloud.session=null;cloud.myUid=null;cloud.hid=null;cloud.invite=null;cloud.ready=false;cloud.sentTo=null;cloud.hhName=null;cloud.members=1;cloud.memberRows=[];
+  if(cloud.hbTimer)clearInterval(cloud.hbTimer);
   emptyLocalData();
   renderAll();openPairing();
 }
@@ -797,6 +843,44 @@ function clearCloudData(){
   renderAll();
   db.clearAll();
   toast(tr('resetDone'));
+}
+function relTime(ts){
+  if(!ts)return null;
+  const diff=Date.now()-new Date(ts).getTime();
+  const m=Math.floor(diff/60000);
+  if(m<2)return tr('justNow');
+  if(m<60)return T[state.lang].minsAgo(m);
+  const h=Math.floor(m/60);
+  if(h<24)return T[state.lang].hoursAgo(h);
+  return T[state.lang].daysAgo(Math.floor(h/24));
+}
+function partnerRow(){return (cloud.memberRows||[]).find(r=>r.user_id!==cloud.myUid)||null;}
+function myRow(){return (cloud.memberRows||[]).find(r=>r.user_id===cloud.myUid)||null;}
+async function saveNickname(){
+  const v=$('nick-input').value.trim().replace(/[<>"'`]/g,'').slice(0,20);
+  if(!v)return;
+  const sb=cloudClient();
+  await sb.from('household_members').update({display_name:v}).match({household_id:cloud.hid,user_id:cloud.myUid});
+  const r=myRow();if(r)r.display_name=v;
+  renderAll();if($('pairing').classList.contains('open'))renderPairing();
+  toast(tr('nickSaved'));
+}
+async function saveFamilyName(){
+  const v=$('fam-input').value.trim().replace(/[<>"'`]/g,'').slice(0,24);
+  if(!v)return;
+  const sb=cloudClient();
+  await sb.from('households').update({name:v}).eq('id',cloud.hid);
+  cloud.hhName=v;
+  renderAll();if($('pairing').classList.contains('open'))renderPairing();
+  toast(tr('nameSaved'));
+}
+function startHeartbeat(){
+  const beat=async()=>{
+    try{await cloudClient().from('household_members').update({last_seen:new Date().toISOString()}).match({household_id:cloud.hid,user_id:cloud.myUid});}catch(e){}
+  };
+  beat();
+  if(cloud.hbTimer)clearInterval(cloud.hbTimer);
+  cloud.hbTimer=setInterval(beat,60000);
 }
 function openPairing(){renderPairing();$('pairing').classList.add('open');}
 function closePairing(){$('pairing').classList.remove('open');}
@@ -822,11 +906,21 @@ function renderPairing(){
       <input type="text" id="hh-code" placeholder="${tr('hhJoinPh')}" class="grow" style="min-width:0;text-transform:uppercase">
       <button class="btn" onclick="hhJoin()">${tr('hhJoin')}</button></div></div>`;
   }else{
-    body=`<div class="card"><h3>${tr('cloudTitle')}</h3>
-      <p class="muted">${cloud.session.user.email} · ${T[state.lang].hhMembers(cloud.members)}</p>
+    const me=myRow(), pt=partnerRow();
+    const ptStatus=!pt?`<span class="tag amber">${tr('notJoined')}</span>`
+      :(pt.last_seen&&Date.now()-new Date(pt.last_seen).getTime()<120000)?`<span class="tag green">${tr('online')}</span>`
+      :pt.last_seen?`<span class="muted">${T[state.lang].lastSeen(relTime(pt.last_seen))}</span>`:'';
+    body=`<div class="card"><h3>☁️ ${cloud.hhName||tr('hhDefault')}</h3>
+      <div class="flex" style="margin:8px 0">
+        <input type="text" id="fam-input" placeholder="${tr('renamePh')}" value="${(cloud.hhName||'').replace(/"/g,'')}" class="grow" style="min-width:0">
+        <button class="btn ghost small" onclick="saveFamilyName()">${tr('save')}</button></div>
+      <div class="row"><span>🙋 ${me&&me.display_name?me.display_name:tr('me')} <span class="muted" style="font-size:11px">${cloud.session.user.email}</span></span><span class="tag green">${tr('online')}</span></div>
+      <div class="flex" style="margin:6px 0">
+        <input type="text" id="nick-input" placeholder="${tr('meNick')}" value="${me&&me.display_name?String(me.display_name).replace(/"/g,''):''}" class="grow" style="min-width:0">
+        <button class="btn ghost small" onclick="saveNickname()">${tr('save')}</button></div>
+      <div class="row"><span>💑 ${pt?(pt.display_name||'TA'):(tr('partnerNot'))}</span><span>${ptStatus}</span></div>
       <p class="muted" style="margin-top:8px">${tr('hhInvite')}</p>
       <div style="text-align:center;font-size:30px;font-weight:700;letter-spacing:4px;margin:10px 0">${cloud.invite}</div>
-      <p class="muted">${cloud.members>=2?tr('partnerJoined'):tr('partnerNot')}</p>
       <div class="flex" style="margin-top:12px">
         <input type="password" id="setpw-input" placeholder="${tr('authSetPwPh')}" class="grow" style="min-width:0">
         <button class="btn ghost" onclick="authSetPassword()">${tr('authSetPw')}</button>
@@ -915,7 +1009,8 @@ function renderHeader(){
   $('u-partner').classList.toggle('hidden',cloud.on);
   $('btn-lang').textContent=tr('langBtn');
   $('btn-reset').textContent=tr('reset');
-  $('u-me').textContent=cloud.on&&cloud.session?('🙋 '+String(cloud.session.user.email).split('@')[0]):tr('me');
+  const meRow_=cloud.on?myRow():null;
+  $('u-me').textContent=cloud.on&&cloud.session?('🙋 '+(meRow_&&meRow_.display_name?meRow_.display_name:String(cloud.session.user.email).split('@')[0])):tr('me');
   $('u-partner').textContent=tr('partner');
   $('u-me').classList.toggle('active',state.user==='me');
   $('u-partner').classList.toggle('active',state.user==='partner');
@@ -926,10 +1021,20 @@ function renderHeader(){
 // -- 菜单规划页 --
 function renderPlan(){
   const day=state.activeDay;
-  let html=`<div class="daynav">${DAYS.map(d=>`<button class="${d===day?'active':''}" onclick="setDay('${d}')">${dayName(d)}</button>`).join('')}</div>`;
+  const cur=mondayISO();
+  const isCur=state.viewWeek===cur, isPast=state.viewWeek<cur;
+  const range=fmtMD(state.viewWeek)+' - '+fmtMD(addDaysISO(state.viewWeek,6));
+  let html=`<div class="card" style="padding:8px 12px"><div class="flex" style="justify-content:space-between">
+    <button class="btn ghost small" onclick="shiftWeek(-1)">‹ ${tr('weekPrev')}</button>
+    <span style="font-size:13px;font-weight:600">${range}
+      ${isCur?`<span class="tag green">${tr('weekThis')}</span>`:isPast?`<span class="tag amber">${tr('weekPast')}</span>`:`<span class="tag">${tr('weekFuture')}</span>`}</span>
+    <button class="btn ghost small" onclick="shiftWeek(1)">${tr('weekNext')} ›</button></div>
+    ${!isCur?`<div style="text-align:center;margin-top:6px"><button class="btn small" onclick="goThisWeek()">${tr('weekBackTo')}</button></div>`:''}</div>`;
+  html+=`<div class="daynav">${DAYS.map((d,i)=>`<button class="${d===day?'active':''}" onclick="setDay('${d}')">${dayName(d)}<br><span style="font-size:10px;opacity:.7">${fmtMD(addDaysISO(state.viewWeek,i))}</span></button>`).join('')}</div>`;
   html+=`<div class="card"><h3>${dayName(day)}${tr('mealsOf')}</h3>`;
+  const plan=viewedPlan();
   MEALS.forEach(meal=>{
-    const ids=state.plan[day][meal];
+    const ids=plan[day][meal];
     html+=`<div class="meal-slot"><div class="slot-title">${meal==='早餐'?'🌅':meal==='午餐'?'☀️':'🌙'} ${mealName(meal)}</div>`;
     ids.forEach(id=>{
       const d=getDish(id);
@@ -944,7 +1049,7 @@ function renderPlan(){
 
   html+=`<div class="card"><h3>${tr('weekOverview')}</h3>`;
   DAYS.forEach(d=>{
-    const all=MEALS.flatMap(m=>state.plan[d][m]);
+    const all=MEALS.flatMap(m=>plan[d][m]);
     if(all.length){
       html+=`<div class="row"><span style="font-size:13px;font-weight:600">${dayName(d)}</span><span style="font-size:12px;text-align:right">${all.map(id=>getDish(id).emoji+dishName(getDish(id))).join('、')}</span></div>`;
     }
@@ -953,16 +1058,20 @@ function renderPlan(){
   $('page-plan').innerHTML=html;
 }
 function setDay(d){state.activeDay=d;renderPlan();}
+function shiftWeek(n){state.viewWeek=addDaysISO(state.viewWeek,n*7);renderPlan();}
+function goThisWeek(){state.viewWeek=mondayISO();renderPlan();}
 function addDish(day,meal){
   const id=$('sel-'+meal).value;
-  if(state.plan[day][meal].includes(id)){toast(tr('dupDish'));return;}
-  state.plan[day][meal].push(id);
-  if(cloud.on)db.planAdd(day,meal,id);
+  const plan=viewedPlan();
+  if(plan[day][meal].includes(id)){toast(tr('dupDish'));return;}
+  plan[day][meal].push(id);
+  if(cloud.on)db.planAdd(state.viewWeek,day,meal,id);
   commit(); toast(tr('added'));
 }
 function removeDish(day,meal,id){
-  state.plan[day][meal]=state.plan[day][meal].filter(x=>x!==id);
-  if(cloud.on)db.planDel(day,meal,id);
+  const plan=viewedPlan();
+  plan[day][meal]=plan[day][meal].filter(x=>x!==id);
+  if(cloud.on)db.planDel(state.viewWeek,day,meal,id);
   commit();
 }
 
@@ -1019,7 +1128,7 @@ function removeFridge(idx){ const item=state.fridge[idx]; state.fridge.splice(id
 
 // -- 购物清单页 --
 function renderShopping(){
-  const list=shoppingList(state.plan,state.fridge,state.purchased);
+  const list=shoppingList(currentWeekPlan(),state.fridge,state.purchased);
   const done=list.filter(i=>i.done).length;
   let html=`<div class="card"><h3>${tr('toBuy')}（${done}/${list.length} ${tr('bought')}）</h3>
     <p class="muted" style="margin-bottom:8px">${tr('autoGen')}</p>`;
@@ -1040,7 +1149,7 @@ function togglePurchase(n){
   commit();
 }
 function stockPurchased(){
-  const list=shoppingList(state.plan,state.fridge,{});
+  const list=shoppingList(currentWeekPlan(),state.fridge,{});
   const ch={updates:[],inserts:[],unmark:[]};
   list.forEach(i=>{
     if(state.purchased[i.n]){
@@ -1185,7 +1294,7 @@ function saveCustomDish(){
 function deleteCustomDish(id){
   if(typeof confirm==='function'&&!confirm(tr('delConfirm')))return;
   state.customDishes=state.customDishes.filter(d=>d.id!==id);
-  DAYS.forEach(d=>MEALS.forEach(m=>{state.plan[d][m]=state.plan[d][m].filter(x=>x!==id);}));
+  Object.values(state.planWeeks).forEach(plan=>DAYS.forEach(d=>MEALS.forEach(m=>{plan[d][m]=plan[d][m].filter(x=>x!==id);})));
   delete state.ratings.me[id]; delete state.ratings.partner[id];
   if(cloud.on)db.customDel(id);
   closeDish();
