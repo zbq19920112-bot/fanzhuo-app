@@ -304,7 +304,7 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   scanTip:'💡 拉开抽屉、把叠放的食材稍微散开，识别更准。看不清的会标「待确认」。',
   scanStartN:n=>`开始识别（已加 ${n} 张）`,scanStartNeed:'先拍一张照片',scanDemo:'不拍照，用演示数据体验流程 →',
   scanning:'正在识别食材…',scanZoneDone:(z,n)=>`✓ ${z}：识别到 ${n} 项`,
-  scanFail:'识别服务暂时不可用（未配置API key或网络问题），可先用演示数据体验',
+  scanFail:'识别失败，具体原因见页面上的红色提示',scanErrDetail:'错误详情',
   modeMerge:'保留并新增',modeMergeSub:'智能合并（推荐）',modeOver:'覆盖原库存',modeOverSub:'用这次结果替换',
   hintMerge:'✅ 与现有库存合并：同一食材自动累加数量，新食材标「新增」。你们的评分记录都会保留。',
   hintOver:list=>`⚠️ 覆盖模式：用这次识别结果替换整个库存。未拍到的原库存${list?`（${list}）`:''}将被移除。入库后可撤销一次。`,
@@ -376,7 +376,7 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   scanTip:'💡 引き出しを開け、重なった食材を少し広げると認識しやすくなります。不明瞭なものは「要確認」になります。',
   scanStartN:n=>`認識開始（${n} 枚追加済み）`,scanStartNeed:'まず1枚撮影してください',scanDemo:'撮影せずデモデータで体験 →',
   scanning:'食材を認識しています…',scanZoneDone:(z,n)=>`✓ ${z}：${n} 品を認識`,
-  scanFail:'認識サービスが利用できません（APIキー未設定またはネットワーク）。デモデータでお試しください',
+  scanFail:'認識に失敗しました。画面の赤い表示をご確認ください',scanErrDetail:'エラー詳細',
   modeMerge:'残して追加',modeMergeSub:'スマート統合（推奨）',modeOver:'在庫を置き換え',modeOverSub:'今回の結果で置換',
   hintMerge:'✅ 既存在庫と統合：同じ食材は数量を加算、新しい食材は「新規」になります。評価記録は保持されます。',
   hintOver:list=>`⚠️ 置き換えモード：今回の認識結果で在庫全体を置き換えます。写っていない在庫${list?`（${list}）`:''}は削除されます。あとで1回だけ取り消せます。`,
@@ -1420,8 +1420,11 @@ async function startScan(useDemo){
       const imgs=scanState.zones[z];
       if(!imgs.length)continue;
       const res=await fetch('/api/scan-fridge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imgs,zone:z})});
-      if(!res.ok)throw new Error('http '+res.status);
-      const j=await res.json();
+      let j=null;try{j=await res.json();}catch(_){j={};}
+      if(!res.ok){
+        const detail=(j&&(j.detail||j.error))||('HTTP '+res.status);
+        throw new Error(detail);
+      }
       (j.items||[]).forEach(it=>collected.push(it));
       scanState.log.push(T[state.lang].scanZoneDone(zoneName(z),(j.items||[]).length));
       renderScan();
@@ -1429,7 +1432,9 @@ async function startScan(useDemo){
     scanState.busy=false;
     ingestScanItems(collected);
   }catch(e){
-    scanState.busy=false;scanState.step='capture';renderScan();
+    scanState.busy=false;scanState.step='capture';
+    scanState.lastError=String(e&&e.message||e).slice(0,140);
+    renderScan();
     toast(tr('scanFail'));
   }
 }
@@ -1549,6 +1554,7 @@ function renderScan(){
           <input type="file" accept="image/*" capture="environment" multiple style="display:none" id="zin-${z}" onchange="onZoneFiles('${z}',this)">
           <button class="btn ghost small" onclick="document.getElementById('zin-${z}').click()">＋</button></div>`;}).join('')}
       <p class="muted" style="margin-top:10px">${tr('scanTip')}</p></div>
+      ${scanState.lastError?`<div class="scan-warn" style="margin-bottom:10px">🔧 ${tr('scanErrDetail')}: <b>${scanState.lastError}</b></div>`:''}
       <button class="btn" style="width:100%" ${n?'':'disabled style="width:100%;opacity:.5"'} onclick="startScan()">${n?T[state.lang].scanStartN(n):tr('scanStartNeed')}</button>
       <p class="muted clickable" style="text-align:center;margin-top:10px;text-decoration:underline" onclick="startScan(true)">${tr('scanDemo')}</p>`;
   }else if(scanState.step==='scanning'){
