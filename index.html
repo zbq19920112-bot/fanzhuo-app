@@ -283,6 +283,13 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   authSent:'邮件已发送！两种方式任选其一完成登录：',authErr:'发送失败，请检查邮箱地址',
   authWayLink:'① 在本浏览器中打开邮件里的登录链接',authWayCode:'② 或直接输入邮件里的6位验证码（推荐，不怕换浏览器）',
   authCodePh:'6位验证码',authVerify:'验证登录',authCodeErr:'验证码不对或已过期，请重发',authResend:'重新发送',
+  authLinkExpired:'⚠️ 登录链接已失效（链接只能用一次，点过或被邮箱安全扫描后即作废）。',
+  authLinkErr:e=>`⚠️ 登录失败：${e}`,
+  authPwHint:'用邮箱+密码登录。第一次使用点「注册」，注册后立即登录，不需要收邮件。',
+  authPwPh:'密码（至少6位）',authLoginBtn:'登录',authSignupBtn:'注册',
+  authPwShort:'密码至少6位',authPwWrong:'邮箱或密码不对',authUserExists:'这个邮箱已注册过，请直接登录',
+  authSignupOk:'注册成功，已登录 🎉',authSetPw:'设置/修改密码',authSetPwPh:'新密码（至少6位）',
+  authSetPwOk:'密码已设置，下次可直接用密码登录 ✓',authSetPwErr:'设置失败，请重试',
   hhCreate:'创建我们的小家',hhJoinPh:'输入TA给你的邀请码',hhJoin:'加入',
   hhInvite:'把这个邀请码告诉TA，让TA登录后输入：',hhMembers:n=>`成员 ${n}/2`,
   partnerJoined:'TA已加入 💑 两人数据实时同步中',partnerNot:'TA还没加入，把邀请码发给TA吧',
@@ -324,6 +331,13 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   authSent:'メールを送信しました！どちらかの方法でログインしてください：',authErr:'送信に失敗しました。メールアドレスを確認してください',
   authWayLink:'① このブラウザでメール内のリンクを開く',authWayCode:'② またはメール内の6桁コードを入力（ブラウザが変わってもOK・推奨）',
   authCodePh:'6桁コード',authVerify:'ログイン',authCodeErr:'コードが正しくないか期限切れです。再送信してください',authResend:'再送信',
+  authLinkExpired:'⚠️ ログインリンクが無効です（リンクは1回限りです）。',
+  authLinkErr:e=>`⚠️ ログイン失敗：${e}`,
+  authPwHint:'メール＋パスワードでログイン。初めての方は「登録」を押すとすぐログインできます（メール受信不要）。',
+  authPwPh:'パスワード（6文字以上）',authLoginBtn:'ログイン',authSignupBtn:'登録',
+  authPwShort:'パスワードは6文字以上です',authPwWrong:'メールまたはパスワードが違います',authUserExists:'このメールは登録済みです。ログインしてください',
+  authSignupOk:'登録完了、ログインしました 🎉',authSetPw:'パスワードを設定/変更',authSetPwPh:'新しいパスワード（6文字以上）',
+  authSetPwOk:'設定しました。次回からパスワードでログインできます ✓',authSetPwErr:'設定に失敗しました',
   hhCreate:'ふたりのおうちを作成',hhJoinPh:'相手からもらった招待コードを入力',hhJoin:'参加',
   hhInvite:'この招待コードを相手に伝えて、ログイン後に入力してもらってください：',hhMembers:n=>`メンバー ${n}/2`,
   partnerJoined:'相手が参加しました 💑 リアルタイム同期中',partnerNot:'相手はまだ参加していません。招待コードを送りましょう',
@@ -585,10 +599,22 @@ function cloudStatusText(){
   if(!cloud.hid)return tr('cloudNeedPair');
   return T[state.lang].cloudOn(cloud.invite);
 }
+function checkAuthUrlError(){
+  if(typeof location==='undefined')return null;
+  try{
+    const frag=(location.hash||'')+'&'+(location.search||'');
+    const m=frag.match(/error_code=([^&]+)/), d=frag.match(/error_description=([^&]+)/);
+    if(!m&&!d)return null;
+    const code=m?decodeURIComponent(m[1]):'';
+    if(/otp_expired|access_denied/.test(code))return tr('authLinkExpired');
+    return T[state.lang].authLinkErr(decodeURIComponent((d&&d[1]||code).replace(/\+/g,' ')));
+  }catch(e){return null;}
+}
 async function initCloud(){
   if(!cloud.on)return;
   const sb=cloudClient();
   if(!sb){cloud.on=false;renderAll();return;}
+  cloud.urlError=checkAuthUrlError();
   const {data}=await sb.auth.getSession();
   cloud.session=data&&data.session||null;
   cloud.myUid=cloud.session?cloud.session.user.id:null;
@@ -704,14 +730,45 @@ async function authSendLink(){
   if(error){toast(tr('authErr'));return;}
   cloud.sentTo=email;renderPairing();
 }
-async function authVerifyCode(){
-  const token=$('auth-code').value.trim();
-  if(!/^\d{6}$/.test(token)){toast(tr('authCodeErr'));return;}
+function authReadForm(){
+  const email=$('auth-email').value.trim(), pw=$('auth-pw').value;
+  if(!/^\S+@\S+\.\S+$/.test(email)){toast(tr('authErr'));return null;}
+  if(!pw||pw.length<6){toast(tr('authPwShort'));return null;}
+  return {email,pw};
+}
+async function authPwLogin(){
+  const f=authReadForm();if(!f)return;
   const sb=cloudClient();
-  const {data,error}=await sb.auth.verifyOtp({email:cloud.sentTo,token,type:'email'});
-  if(error||!data||!data.session){toast(tr('authCodeErr'));return;}
-  cloud.session=data.session;cloud.myUid=data.session.user.id;cloud.sentTo=null;
+  const {data,error}=await sb.auth.signInWithPassword({email:f.email,password:f.pw});
+  if(error||!data||!data.session){toast(tr('authPwWrong'));return;}
+  cloud.session=data.session;cloud.myUid=data.session.user.id;cloud.urlError=null;
   await afterAuth();
+}
+async function authPwSignup(){
+  const f=authReadForm();if(!f)return;
+  const sb=cloudClient();
+  const {data,error}=await sb.auth.signUp({email:f.email,password:f.pw});
+  if(error){
+    toast(/already|registered|exists/i.test(error.message||'')?tr('authUserExists'):tr('authErr'));
+    return;
+  }
+  if(data&&data.session){
+    cloud.session=data.session;cloud.myUid=data.session.user.id;cloud.urlError=null;
+    toast(tr('authSignupOk'));
+    await afterAuth();
+  }else{
+    // Confirm email未关闭时会走到这里（无session）
+    toast(tr('authErr'));
+  }
+}
+async function authSetPassword(){
+  const pw=$('setpw-input').value;
+  if(!pw||pw.length<6){toast(tr('authPwShort'));return;}
+  const sb=cloudClient();
+  const {error}=await sb.auth.updateUser({password:pw});
+  if(error){toast(tr('authSetPwErr'));return;}
+  $('setpw-input').value='';
+  toast(tr('authSetPwOk'));
 }
 async function hhCreate(){
   const sb=cloudClient();
@@ -748,17 +805,15 @@ function renderPairing(){
   if(!cloud.on){
     body=`<div class="card"><h3>${tr('cloudTitle')}</h3><p class="muted">${tr('cloudNotConfigured')}</p></div>`;
   }else if(!cloud.session){
-    body=`<div class="card"><h3>${tr('cloudTitle')}</h3>
-      ${cloud.sentTo?`<p style="font-size:14px;margin:8px 0">📮 ${tr('authSent')}</p>
-      <p class="muted">${cloud.sentTo} · <span class="clickable" style="text-decoration:underline" onclick="cloud.sentTo=null;renderPairing()">${tr('authResend')}</span></p>
-      <p class="muted" style="margin-top:10px">${tr('authWayLink')}</p>
-      <p class="muted" style="margin-top:6px">${tr('authWayCode')}</p>
-      <div class="flex" style="margin-top:8px">
-        <input type="text" id="auth-code" inputmode="numeric" maxlength="6" placeholder="${tr('authCodePh')}" class="grow" style="min-width:0;letter-spacing:4px;text-align:center">
-        <button class="btn" onclick="authVerifyCode()">${tr('authVerify')}</button></div>`
-      :`<p class="muted" style="margin-bottom:8px">${tr('authHint')}</p>
-      <div class="flex"><input type="text" id="auth-email" placeholder="${tr('authEmailPh')}" class="grow" style="min-width:0">
-      <button class="btn" onclick="authSendLink()">${tr('authSend')}</button></div>`}</div>`;
+    const errBox=cloud.urlError?`<p style="font-size:13px;color:var(--amber);background:var(--amber-soft);border-radius:8px;padding:8px 10px;margin-bottom:8px">${cloud.urlError}</p>`:'';
+    body=`<div class="card"><h3>${tr('cloudTitle')}</h3>${errBox}
+      <p class="muted" style="margin-bottom:8px">${tr('authPwHint')}</p>
+      <input type="text" id="auth-email" placeholder="${tr('authEmailPh')}" style="width:100%;margin-bottom:8px">
+      <input type="password" id="auth-pw" placeholder="${tr('authPwPh')}" style="width:100%;margin-bottom:10px">
+      <div class="flex">
+        <button class="btn grow" onclick="authPwLogin()">${tr('authLoginBtn')}</button>
+        <button class="btn ghost grow" onclick="authPwSignup()">${tr('authSignupBtn')}</button>
+      </div></div>`;
   }else if(!cloud.hid){
     body=`<div class="card"><h3>${tr('cloudTitle')}</h3>
       <p class="muted" style="margin-bottom:10px">${cloud.session.user.email}</p>
@@ -772,6 +827,10 @@ function renderPairing(){
       <p class="muted" style="margin-top:8px">${tr('hhInvite')}</p>
       <div style="text-align:center;font-size:30px;font-weight:700;letter-spacing:4px;margin:10px 0">${cloud.invite}</div>
       <p class="muted">${cloud.members>=2?tr('partnerJoined'):tr('partnerNot')}</p>
+      <div class="flex" style="margin-top:12px">
+        <input type="password" id="setpw-input" placeholder="${tr('authSetPwPh')}" class="grow" style="min-width:0">
+        <button class="btn ghost" onclick="authSetPassword()">${tr('authSetPw')}</button>
+      </div>
       <div class="flex" style="margin-top:12px;justify-content:center">
         <button class="btn ghost" onclick="doLogout()">${tr('logout')}</button>
         <button class="btn ghost" onclick="clearCloudData()">${tr('clearCloud')}</button>
