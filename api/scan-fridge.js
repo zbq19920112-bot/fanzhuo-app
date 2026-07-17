@@ -62,7 +62,7 @@ async function callClaude(images, key) {
 }
 
 async function callGemini(images, key) {
-  const model = process.env.SCAN_GEMINI_MODEL || 'gemini-2.5-flash';
+  const model = process.env.SCAN_GEMINI_MODEL || 'gemini-flash-latest'; // 别名永远指向最新Flash，避免型号停用
   const parts = images.map(img => {
     const { mime, data } = stripB64(img);
     return { inline_data: { mime_type: mime, data } };

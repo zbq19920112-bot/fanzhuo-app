@@ -321,6 +321,12 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   buyGo:'去买',buyPickTitle:'🛒 去哪里买？',buyPickSub:'选一个常用平台，之后点「去买」直接跳转（随时可换）',
   buyCurrent:p=>`下单平台：${p}`,buyChange:'更换',buyMarket:'地区',marketCn:'🇨🇳 中国平台',marketJp:'🇯🇵 日本平台',
   buyDisclosure:'※ 通过购买链接下单，本应用可能获得少量介绍费，不影响你的价格',
+  buyMode:n=>`🧺 采购模式（${n} 样待买）`,exitBuyMode:'退出采购模式',
+  buySelectedN:n=>`已选 ${n} 样`,buyStartRun:'开始逐个购买',copyList:'📋 复制清单',copied:'清单已复制，可粘贴到买菜App或发给TA',
+  runProgress:(i,t)=>`第 ${i}/${t} 样`,runOpenBtn:(p,n)=>`打开 ${p}：${n}`,runSkip:'跳过这样 ›',
+  runDoneTitle:'✅ 采购跳转完成',runDoneSub:'都下单了吗？可以一键标记为已买',runMarkAll:'把这些标记为已买 ✓',runBackList:'返回清单',
+  compare:'💴 比价',comparing:'查询比价中…',compareBest:'🏆 最低价',
+  compareNone:'该地区/平台暂不支持自动比价，可点下面并排打开人工对比：',compareGo:'去买',
   cloudTitle:'☁️ 我们的小家',
   cloudNotConfigured:'尚未配置 Supabase 密钥，当前为本地演示模式（数据仅存这台设备）。部署者请按 README 把密钥填入 config.js 后重新发布。',
   authHint:'无需密码：输入邮箱，点邮件里的登录链接即完成登录',authEmailPh:'输入你的邮箱',authSend:'发送登录链接',
@@ -396,6 +402,12 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   buyGo:'購入',buyPickTitle:'🛒 どこで買いますか？',buyPickSub:'よく使うお店を選ぶと、次から「購入」で直接開きます（いつでも変更可）',
   buyCurrent:p=>`購入先：${p}`,buyChange:'変更',buyMarket:'地域',marketCn:'🇨🇳 中国のお店',marketJp:'🇯🇵 日本のお店',
   buyDisclosure:'※ リンク経由のご購入で当アプリに紹介料が入る場合があります（価格は変わりません）【PR】',
+  buyMode:n=>`🧺 まとめ買いモード（残り ${n} 品）`,exitBuyMode:'まとめ買いを終了',
+  buySelectedN:n=>`${n} 品選択中`,buyStartRun:'1品ずつ開いて購入',copyList:'📋 リストをコピー',copied:'コピーしました。ネットスーパーのアプリ等に貼り付けできます',
+  runProgress:(i,t)=>`${i}/${t} 品目`,runOpenBtn:(p,n)=>`${p} で開く：${n}`,runSkip:'この品をスキップ ›',
+  runDoneTitle:'✅ 購入ジャンプ完了',runDoneSub:'注文できましたか？まとめて購入済みにできます',runMarkAll:'まとめて購入済みにする ✓',runBackList:'リストに戻る',
+  compare:'💴 価格比較',comparing:'価格を取得中…',compareBest:'🏆 最安',
+  compareNone:'この地域/店舗は自動価格比較に未対応です。下のボタンで並べて比較できます：',compareGo:'購入',
   cloudTitle:'☁️ ふたりのおうち',
   cloudNotConfigured:'Supabaseキーが未設定のため、ローカルデモモードで動作中です（データはこの端末のみ）。READMEに従って config.js を設定してください。',
   authHint:'パスワード不要：メールを入力し、届いたリンクをタップするだけでログイン',authEmailPh:'メールアドレスを入力',authSend:'ログインリンクを送信',
@@ -1245,11 +1257,83 @@ function openBuy(n){
 function pickBuyPlatform(pid){
   state.buyPlatform=pid;saveState();
   const n=state.buyPicker;state.buyPicker=null;
+  if(state.buyRun&&!state.buyRun.queue){startBuyQueue();return;}
   renderShopping();
   if(n)openBuy(n);
 }
 function cancelBuyPicker(){state.buyPicker=null;renderShopping();}
 function changeBuyPlatform(){state.buyPlatform=null;state.buyPicker=null;saveState();renderShopping();}
+
+// -- 采购模式（多选→逐个跳转）与比价 --
+function unboughtList(){return shoppingList(currentWeekPlan(),state.fridge,state.purchased).filter(i=>!i.done);}
+function enterBuyMode(){
+  const sel={};unboughtList().forEach(i=>sel[i.n]=true);
+  state.buyRun={sel,queue:null,idx:0};
+  renderShopping();
+}
+function exitBuyMode(){state.buyRun=null;renderShopping();}
+function buySelToggle(n){if(!state.buyRun)return;state.buyRun.sel[n]=!state.buyRun.sel[n];renderShopping();}
+function buySelected(){return state.buyRun?Object.keys(state.buyRun.sel).filter(n=>state.buyRun.sel[n]):[];}
+function startBuyQueue(){
+  const q=buySelected();
+  if(!q.length)return;
+  if(!state.buyPlatform){state.buyPicker=q[0];renderShopping();return;}
+  state.buyRun.queue=q;state.buyRun.idx=0;
+  renderShopping();
+}
+function buyRunOpenCurrent(){
+  const r=state.buyRun;if(!r||!r.queue)return;
+  openBuy(r.queue[r.idx]);
+  r.idx++;renderShopping();
+}
+function buyRunSkip(){const r=state.buyRun;if(!r||!r.queue)return;r.idx++;renderShopping();}
+function buyRunMarkAll(){
+  const r=state.buyRun;if(!r||!r.queue)return;
+  r.queue.forEach(n=>{
+    if(!state.purchased[n]){state.purchased[n]=true;if(cloud.on)db.purchase(n,true);}
+  });
+  state.buyRun=null;
+  commit();
+}
+function copyShoppingList(){
+  const items=state.buyRun?unboughtList().filter(i=>state.buyRun.sel[i.n]):unboughtList();
+  const text=items.map(i=>`・${ingName(i.n)} ×${i.q}${unitName(i.u)}`).join('\n');
+  const done=()=>toast(tr('copied'));
+  try{
+    if(typeof navigator!=='undefined'&&navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done,done);
+    }else if(typeof document!=='undefined'&&document.execCommand){
+      const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();
+    }else done();
+  }catch(e){done();}
+  return text;
+}
+async function priceCheck(n){
+  if(!state.priceData)state.priceData={};
+  state.priceData[n]={loading:true};renderShopping();
+  try{
+    const res=await fetch('/api/price-check?kw='+encodeURIComponent(buyKeyword(n))+'&market='+currentMarket());
+    const j=await res.json();
+    if(!j||!Array.isArray(j.results))throw new Error('bad');
+    state.priceData[n]={results:j.results,reason:j.reason||null};
+  }catch(e){
+    state.priceData[n]={results:[],reason:'error'};
+  }
+  renderShopping();
+}
+function priceRowsHtml(n){
+  const pd=(state.priceData||{})[n];
+  if(!pd)return '';
+  if(pd.loading)return `<p class="muted" style="margin:4px 0 0 30px">${tr('comparing')}</p>`;
+  if(pd.results&&pd.results.length){
+    return pd.results.map((r,i)=>`<div class="row" style="margin-left:26px;padding:5px 0">
+      <span style="font-size:12px;min-width:0" class="grow">${i===0?`<span class="tag green">${tr('compareBest')}</span> `:''}<b>¥${r.price.toLocaleString?r.price.toLocaleString():r.price}</b> · <span class="muted">${r.shop}</span><br><span class="muted" style="font-size:11px">${r.name.slice(0,34)}</span></span>
+      <a class="btn ghost small" style="text-decoration:none" href="${r.url}" target="_blank" rel="noopener">${tr('compareGo')}</a></div>`).join('');
+  }
+  const plats=BUY_PLATFORMS[currentMarket()];
+  return `<p class="muted" style="margin:4px 0 4px 30px">${tr('compareNone')}</p>
+    <div class="flex" style="margin-left:30px;flex-wrap:wrap">${plats.map(p=>`<a class="btn ghost small" style="text-decoration:none" href="${buyLink(p,n)}" target="_blank" rel="noopener">${p.name}</a>`).join('')}</div>`;
+}
 
 // -- 购物清单页 --
 function renderShopping(){
@@ -1273,17 +1357,57 @@ function renderShopping(){
       <span class="clickable" style="${mkt==='jp'?'font-weight:700;color:var(--ink)':''}" onclick="setMarket('jp')">${tr('marketJp')}</span></span>
     <span class="muted">${chosen?T[state.lang].buyCurrent(chosen.name)+' · ':''}${chosen?`<span class="clickable" style="text-decoration:underline" onclick="changeBuyPlatform()">${tr('buyChange')}</span>`:''}</span>
   </div></div>`;
-  html+=`<div class="card"><h3>${tr('toBuy')}（${done}/${list.length} ${tr('bought')}）</h3>
-    <p class="muted" style="margin-bottom:8px">${tr('autoGen')}</p>`;
-  if(list.length===0) html+=`<div class="empty">${tr('nothingToBuy')}</div>`;
-  list.forEach(i=>{
-    html+=`<div class="row">
-      <span class="flex"><span class="check ${i.done?'on':''}" onclick="togglePurchase('${i.n}')">${i.done?'✓':''}</span>
-      <span class="${i.done?'strike':''}">${ingName(i.n)}</span></span>
-      <span class="flex"><span class="muted">${i.q}${unitName(i.u)}</span>
-      ${i.done?'':`<button class="btn ghost small" onclick="openBuy('${i.n}')">🛒 ${tr('buyGo')}</button>`}</span></div>`;
-  });
-  html+=`<p class="muted" style="margin-top:8px">${tr('buyDisclosure')}</p></div>`;
+  const unbought=list.filter(i=>!i.done);
+  // ===== 采购模式面板 =====
+  if(state.buyRun&&state.buyRun.queue){
+    const r=state.buyRun;
+    if(r.idx<r.queue.length){
+      const n=r.queue[r.idx];
+      const item=list.find(x=>x.n===n);
+      html+=`<div class="card" style="border-color:var(--accent);text-align:center">
+        <p class="muted">${T[state.lang].runProgress(r.idx+1,r.queue.length)}</p>
+        <h3 style="margin:8px 0">${ingName(n)} ${item?`<span class="muted" style="font-weight:400">×${item.q}${unitName(item.u)}</span>`:''}</h3>
+        <button class="btn" style="width:100%" onclick="buyRunOpenCurrent()">${T[state.lang].runOpenBtn(chosen?chosen.name:'',ingName(n))}</button>
+        <p class="muted clickable" style="margin-top:10px;text-decoration:underline" onclick="buyRunSkip()">${tr('runSkip')}</p>
+        <p class="muted clickable" style="margin-top:6px" onclick="exitBuyMode()">${tr('exitBuyMode')}</p></div>`;
+    }else{
+      html+=`<div class="card" style="text-align:center">
+        <h3>${tr('runDoneTitle')}</h3><p class="muted" style="margin:8px 0">${tr('runDoneSub')}</p>
+        <button class="btn" style="width:100%" onclick="buyRunMarkAll()">${tr('runMarkAll')}</button>
+        <p class="muted clickable" style="margin-top:10px;text-decoration:underline" onclick="exitBuyMode()">${tr('runBackList')}</p></div>`;
+    }
+  }else if(state.buyRun){
+    const selN=buySelected().length;
+    html+=`<div class="card" style="border-color:var(--accent)"><h3>${T[state.lang].buyMode(unbought.length)}</h3>`;
+    unbought.forEach(i=>{
+      const on=!!state.buyRun.sel[i.n];
+      html+=`<div class="row">
+        <span class="flex"><span class="check ${on?'on':''}" onclick="buySelToggle('${i.n}')">${on?'✓':''}</span>
+        <span>${ingName(i.n)} <span class="muted">×${i.q}${unitName(i.u)}</span></span></span>
+        <button class="btn ghost small" onclick="priceCheck('${i.n}')">${tr('compare')}</button></div>
+        ${priceRowsHtml(i.n)}`;
+    });
+    html+=`<div class="flex" style="margin-top:12px">
+      <button class="btn grow" onclick="startBuyQueue()">${tr('buyStartRun')}（${selN}）</button>
+      <button class="btn ghost" onclick="copyShoppingList()">${tr('copyList')}</button></div>
+      <p class="muted clickable" style="text-align:center;margin-top:8px" onclick="exitBuyMode()">${tr('exitBuyMode')}</p>
+      <p class="muted" style="margin-top:6px">${tr('buyDisclosure')}</p></div>`;
+  }
+  // ===== 常规清单 =====
+  if(!state.buyRun){
+    html+=`<div class="card"><h3>${tr('toBuy')}（${done}/${list.length} ${tr('bought')}）</h3>
+      <p class="muted" style="margin-bottom:8px">${tr('autoGen')}</p>`;
+    if(list.length===0) html+=`<div class="empty">${tr('nothingToBuy')}</div>`;
+    if(unbought.length>1)html+=`<button class="btn ghost" style="width:100%;margin-bottom:8px" onclick="enterBuyMode()">${T[state.lang].buyMode(unbought.length)}</button>`;
+    list.forEach(i=>{
+      html+=`<div class="row">
+        <span class="flex"><span class="check ${i.done?'on':''}" onclick="togglePurchase('${i.n}')">${i.done?'✓':''}</span>
+        <span class="${i.done?'strike':''}">${ingName(i.n)}</span></span>
+        <span class="flex"><span class="muted">${i.q}${unitName(i.u)}</span>
+        ${i.done?'':`<button class="btn ghost small" onclick="openBuy('${i.n}')">🛒 ${tr('buyGo')}</button>`}</span></div>`;
+    });
+    html+=`<p class="muted" style="margin-top:8px">${tr('buyDisclosure')}</p></div>`;
+  }
   if(done>0) html+=`<div style="text-align:center"><button class="btn ghost" onclick="stockPurchased()">${T[state.lang].putInFridge(done)}</button></div>`;
   $('page-shopping').innerHTML=html;
 }
