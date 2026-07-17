@@ -318,6 +318,9 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   nudgeSuggest:'看看现在能做什么菜 ›',nudgeSuggestSub:'根据最新库存为你俩推荐',nudgeShopping:'生成购物清单 ›',nudgeShoppingSub:'对照本周菜单查缺补漏',
   scanAgain:'↺ 再扫一次',undoOver:'↺ 撤销本次覆盖',undone:'已撤销，库存恢复原样 ✓',
   catVeg:'蔬菜',catFruit:'水果',catMeat:'肉类',catSea:'海鲜',catEgg:'蛋奶',catBean:'豆制品',catStaple:'主食',catSeasoning:'调料',catOther:'其他',
+  buyGo:'去买',buyPickTitle:'🛒 去哪里买？',buyPickSub:'选一个常用平台，之后点「去买」直接跳转（随时可换）',
+  buyCurrent:p=>`下单平台：${p}`,buyChange:'更换',buyMarket:'地区',marketCn:'🇨🇳 中国平台',marketJp:'🇯🇵 日本平台',
+  buyDisclosure:'※ 通过购买链接下单，本应用可能获得少量介绍费，不影响你的价格',
   cloudTitle:'☁️ 我们的小家',
   cloudNotConfigured:'尚未配置 Supabase 密钥，当前为本地演示模式（数据仅存这台设备）。部署者请按 README 把密钥填入 config.js 后重新发布。',
   authHint:'无需密码：输入邮箱，点邮件里的登录链接即完成登录',authEmailPh:'输入你的邮箱',authSend:'发送登录链接',
@@ -390,6 +393,9 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   nudgeSuggest:'今作れる料理を見る ›',nudgeSuggestSub:'最新の在庫からおすすめ',nudgeShopping:'買い物リストを作る ›',nudgeShoppingSub:'今週の献立と照合',
   scanAgain:'↺ もう一度スキャン',undoOver:'↺ 置き換えを取り消す',undone:'取り消しました。在庫は元に戻りました ✓',
   catVeg:'野菜',catFruit:'果物',catMeat:'肉類',catSea:'魚介',catEgg:'卵・乳製品',catBean:'大豆製品',catStaple:'主食',catSeasoning:'調味料',catOther:'その他',
+  buyGo:'購入',buyPickTitle:'🛒 どこで買いますか？',buyPickSub:'よく使うお店を選ぶと、次から「購入」で直接開きます（いつでも変更可）',
+  buyCurrent:p=>`購入先：${p}`,buyChange:'変更',buyMarket:'地域',marketCn:'🇨🇳 中国のお店',marketJp:'🇯🇵 日本のお店',
+  buyDisclosure:'※ リンク経由のご購入で当アプリに紹介料が入る場合があります（価格は変わりません）【PR】',
   cloudTitle:'☁️ ふたりのおうち',
   cloudNotConfigured:'Supabaseキーが未設定のため、ローカルデモモードで動作中です（データはこの端末のみ）。READMEに従って config.js を設定してください。',
   authHint:'パスワード不要：メールを入力し、届いたリンクをタップするだけでログイン',authEmailPh:'メールアドレスを入力',authSend:'ログインリンクを送信',
@@ -621,7 +627,7 @@ function snapshot(){const s={ver:state.ver};SYNC_KEYS.forEach(k=>s[k]=state[k]);
 function saveState(){
   try{
     if(!CLOUD_ON) localStorage.setItem(LS_KEY,JSON.stringify(snapshot()));
-    localStorage.setItem(LS_PREFS,JSON.stringify({lang:state.lang,user:state.user}));
+    localStorage.setItem(LS_PREFS,JSON.stringify({lang:state.lang,user:state.user,market:state.market||null,buyPlatform:state.buyPlatform||null}));
   }catch(e){}
 }
 function loadState(){
@@ -636,7 +642,8 @@ function loadState(){
       }
     }
     const p=localStorage.getItem(LS_PREFS);
-    if(p){const q=JSON.parse(p);if(q.lang)state.lang=q.lang;if(q.user)state.user=q.user;}
+    if(p){const q=JSON.parse(p);if(q.lang)state.lang=q.lang;if(q.user)state.user=q.user;
+      if(q.market)state.market=q.market;if(q.buyPlatform)state.buyPlatform=q.buyPlatform;}
   }catch(e){}
 }
 function applyRemote(data){
@@ -1190,20 +1197,93 @@ function addFridge(){
 }
 function removeFridge(idx){ const item=state.fridge[idx]; state.fridge.splice(idx,1); if(cloud.on)db.fridgeDel(item); commit(); }
 
+// -- 联盟深链（CPS变现：清单项→电商平台） --
+const BUY_PLATFORMS={
+  cn:[
+    {id:'taobao', name:'淘宝',   tmpl:'https://s.taobao.com/search?q={kw}'},
+    {id:'jd',     name:'京东',   tmpl:'https://search.jd.com/Search?keyword={kw}'},
+    {id:'pdd',    name:'拼多多', tmpl:'https://mobile.yangkeduo.com/search_result.html?search_key={kw}'},
+  ],
+  jp:[
+    {id:'amazonjp',   name:'Amazon',            tmpl:'https://www.amazon.co.jp/s?k={kw}'},
+    {id:'rakuten',    name:'楽天市場',           tmpl:'https://search.rakuten.co.jp/search/mall/{kw}/'},
+    {id:'rakutenseiyu',name:'楽天西友ネットスーパー', tmpl:'https://sm.rakuten.co.jp/search?keyword={kw}'},
+  ],
+};
+function affCfg(){return (typeof window!=='undefined'&&window.AFFILIATE_CONFIG)||{};}
+function currentMarket(){return state.market||(state.lang==='ja'?'jp':'cn');}
+function setMarket(m){state.market=m;state.buyPlatform=null;saveState();renderShopping();}
+function buyKeyword(n){return currentMarket()==='jp'?(ING_JA[n]||n):n;}
+// 生成深链：自定义模板 > 平台专属联盟参数 > 普通搜索
+function buyLink(platform,n){
+  const cfg=affCfg();
+  const kw=encodeURIComponent(buyKeyword(n));
+  const custom=(cfg.CUSTOM_TEMPLATES||{})[platform.id];
+  let url=(custom||platform.tmpl).replace('{kw}',kw);
+  if(!custom){
+    if(platform.id==='amazonjp'&&cfg.AMAZON_JP_TAG)url+='&tag='+encodeURIComponent(cfg.AMAZON_JP_TAG);
+    if(platform.id==='rakuten'&&cfg.RAKUTEN_AFF_ID)url='https://hb.afl.rakuten.co.jp/hgc/'+encodeURIComponent(cfg.RAKUTEN_AFF_ID)+'/?pc='+encodeURIComponent(url);
+  }
+  if(custom&&custom.includes('{url}'))url=custom.replace('{url}',encodeURIComponent(platform.tmpl.replace('{kw}',kw))).replace('{kw}',kw);
+  return url;
+}
+function trackBuyClick(pid){
+  try{
+    const k='mp_buy_clicks';
+    const c=JSON.parse(localStorage.getItem(k)||'{}');
+    c[pid]=(c[pid]||0)+1;
+    localStorage.setItem(k,JSON.stringify(c));
+  }catch(e){}
+}
+function openBuy(n){
+  const plats=BUY_PLATFORMS[currentMarket()];
+  const chosen=plats.find(p=>p.id===state.buyPlatform);
+  if(!chosen){state.buyPicker=n;renderShopping();return;}
+  trackBuyClick(chosen.id);
+  if(typeof window!=='undefined'&&window.open)window.open(buyLink(chosen,n),'_blank','noopener');
+}
+function pickBuyPlatform(pid){
+  state.buyPlatform=pid;saveState();
+  const n=state.buyPicker;state.buyPicker=null;
+  renderShopping();
+  if(n)openBuy(n);
+}
+function cancelBuyPicker(){state.buyPicker=null;renderShopping();}
+function changeBuyPlatform(){state.buyPlatform=null;state.buyPicker=null;saveState();renderShopping();}
+
 // -- 购物清单页 --
 function renderShopping(){
   const list=shoppingList(currentWeekPlan(),state.fridge,state.purchased);
   const done=list.filter(i=>i.done).length;
-  let html=`<div class="card"><h3>${tr('toBuy')}（${done}/${list.length} ${tr('bought')}）</h3>
+  const mkt=currentMarket();
+  const plats=BUY_PLATFORMS[mkt];
+  const chosen=plats.find(p=>p.id===state.buyPlatform);
+  let html='';
+  // 平台选择面板
+  if(state.buyPicker){
+    html+=`<div class="card" style="border-color:var(--accent)"><h3>${tr('buyPickTitle')}</h3>
+      <p class="muted" style="margin-bottom:8px">${tr('buyPickSub')}</p>
+      ${plats.map(p=>`<div class="row clickable" onclick="pickBuyPlatform('${p.id}')"><span><b style="font-size:14px">${p.name}</b></span><span class="muted">›</span></div>`).join('')}
+      <p class="muted" style="margin-top:8px">${tr('buyDisclosure')}</p>
+      <button class="btn ghost" style="width:100%;margin-top:8px" onclick="cancelBuyPicker()">${tr('back')}</button></div>`;
+  }
+  html+=`<div class="card" style="padding:10px 14px"><div class="flex" style="justify-content:space-between">
+    <span class="muted">${tr('buyMarket')}:
+      <span class="clickable ${mkt==='cn'?'':''}" style="${mkt==='cn'?'font-weight:700;color:var(--ink)':''}" onclick="setMarket('cn')">${tr('marketCn')}</span> /
+      <span class="clickable" style="${mkt==='jp'?'font-weight:700;color:var(--ink)':''}" onclick="setMarket('jp')">${tr('marketJp')}</span></span>
+    <span class="muted">${chosen?T[state.lang].buyCurrent(chosen.name)+' · ':''}${chosen?`<span class="clickable" style="text-decoration:underline" onclick="changeBuyPlatform()">${tr('buyChange')}</span>`:''}</span>
+  </div></div>`;
+  html+=`<div class="card"><h3>${tr('toBuy')}（${done}/${list.length} ${tr('bought')}）</h3>
     <p class="muted" style="margin-bottom:8px">${tr('autoGen')}</p>`;
   if(list.length===0) html+=`<div class="empty">${tr('nothingToBuy')}</div>`;
   list.forEach(i=>{
     html+=`<div class="row">
       <span class="flex"><span class="check ${i.done?'on':''}" onclick="togglePurchase('${i.n}')">${i.done?'✓':''}</span>
       <span class="${i.done?'strike':''}">${ingName(i.n)}</span></span>
-      <span class="muted">${i.q}${unitName(i.u)}</span></div>`;
+      <span class="flex"><span class="muted">${i.q}${unitName(i.u)}</span>
+      ${i.done?'':`<button class="btn ghost small" onclick="openBuy('${i.n}')">🛒 ${tr('buyGo')}</button>`}</span></div>`;
   });
-  html+=`</div>`;
+  html+=`<p class="muted" style="margin-top:8px">${tr('buyDisclosure')}</p></div>`;
   if(done>0) html+=`<div style="text-align:center"><button class="btn ghost" onclick="stockPurchased()">${T[state.lang].putInFridge(done)}</button></div>`;
   $('page-shopping').innerHTML=html;
 }
