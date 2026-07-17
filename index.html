@@ -6,6 +6,7 @@
 <title>两口子的饭桌 · Demo</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="dishes-data.js"></script>
 <style>
   :root{
     --bg:#faf7f2; --card:#ffffff; --ink:#3d3229; --muted:#9a8f82;
@@ -133,6 +134,7 @@
 <div id="adddish" class="detail-overlay"></div>
 <div id="pairing" class="detail-overlay"></div>
 <div id="scan" class="detail-overlay"></div>
+<div id="picker" class="detail-overlay"></div>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -257,7 +259,18 @@ const DISHES = [
 // ---- 食材/单位 日语对照（内部主键始终用中文） ----
 const ING_JA={'番茄':'トマト','鸡蛋':'卵','葱':'ねぎ','豆腐':'豆腐','猪肉末':'豚ひき肉','豆瓣酱':'豆板醤','鲈鱼':'スズキ','姜':'生姜','蒸鱼豉油':'蒸し魚醤油','大米':'米','皮蛋':'ピータン','猪里脊':'豚ヒレ肉','鸡腿肉':'鶏もも肉','洋葱':'玉ねぎ','味淋':'みりん','咖喱块':'カレールー','土豆':'じゃがいも','胡萝卜':'にんじん','味噌':'味噌','裙带菜':'わかめ','午餐肉':'ランチョンミート','泡菜':'キムチ','年糕':'トック餅','拉面饼':'インスタント麺','芝士片':'スライスチーズ','意面':'パスタ','蘑菇':'マッシュルーム','淡奶油':'生クリーム','大蒜':'にんにく','帕玛森芝士':'パルメザンチーズ','三文鱼':'サーモン','柠檬':'レモン','芦笋':'アスパラガス','黄油':'バター','吐司':'食パン','牛油果':'アボカド','菠菜':'ほうれん草','豆芽':'もやし','韩式辣酱':'コチュジャン','五花肉':'豚バラ肉','冰糖':'氷砂糖','酱油':'醤油','料酒':'料理酒','鸡胸肉':'鶏むね肉','花生米':'ピーナッツ','干辣椒':'乾燥唐辛子','醋':'酢','糖':'砂糖','木耳':'きくらげ','青椒':'ピーマン','可乐':'コーラ','鸡翅':'手羽先','牛肉片':'牛薄切り肉','淀粉':'片栗粉','牛肉末':'牛ひき肉','面包糠':'パン粉','大酱':'テンジャン','西葫芦':'ズッキーニ','鱼饼':'さつま揚げ','面粉':'小麦粉','鱿鱼':'イカ','虾仁':'むきエビ','紫菜':'焼き海苔','火腿':'ハム','黄瓜':'きゅうり','韩式粉丝':'韓国春雨','生菜':'レタス','凯撒酱':'シーザードレッシング','牛奶':'牛乳','牛排':'ステーキ肉'};
 const ING_JA_REV={}; Object.keys(ING_JA).forEach(k=>ING_JA_REV[ING_JA[k]]=k);
+// ---- 合并外挂菜库（dishes-data.js） ----
+if(typeof window!=='undefined'&&Array.isArray(window.EXTRA_DISHES)){
+  Object.assign(ING_JA,window.EXTRA_ING_JA||{});
+  Object.keys(window.EXTRA_ING_JA||{}).forEach(k=>ING_JA_REV[window.EXTRA_ING_JA[k]]=k);
+  window.EXTRA_DISHES.forEach(d=>{
+    DISHES.push({id:d.id,name:d.name,ja:d.ja,cuisine:d.c,emoji:d.e,
+      ingredients:d.i.map(x=>({n:x[0],q:x[1],u:x[2]})),
+      steps:d.s,stepsJa:d.sj||d.s});
+  });
+}
 const UNIT_JA={'个':'個','根':'本','块':'個','勺':'さじ','杯':'カップ','条':'尾','片':'枚','罐':'缶','瓣':'かけ','份':'個','张':'枚','颗':'玉','g':'g','ml':'ml'};
+if(typeof window!=='undefined'&&window.EXTRA_UNIT_JA)Object.assign(UNIT_JA,window.EXTRA_UNIT_JA);
 const CUISINE_JA={'中餐':'中華','日餐':'和食','韩餐':'韓国料理','西餐':'洋食','其他':'その他','全部':'すべて'};
 const DAY_JA={'周一':'月曜','周二':'火曜','周三':'水曜','周四':'木曜','周五':'金曜','周六':'土曜','周日':'日曜'};
 const MEAL_JA={'早餐':'朝食','午餐':'昼食','晚餐':'夕食'};
@@ -318,7 +331,12 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   nudgeSuggest:'看看现在能做什么菜 ›',nudgeSuggestSub:'根据最新库存为你俩推荐',nudgeShopping:'生成购物清单 ›',nudgeShoppingSub:'对照本周菜单查缺补漏',
   scanAgain:'↺ 再扫一次',undoOver:'↺ 撤销本次覆盖',undone:'已撤销，库存恢复原样 ✓',
   catVeg:'蔬菜',catFruit:'水果',catMeat:'肉类',catSea:'海鲜',catEgg:'蛋奶',catBean:'豆制品',catStaple:'主食',catSeasoning:'调料',catOther:'其他',
-  buyGo:'去买',buyPickTitle:'🛒 去哪里买？',buyPickSub:'选一个常用平台，之后点「去买」直接跳转（随时可换）',
+  buyGo:'去买',
+  pickDish:'选菜（搜索/推荐）',pickerTitle:'选一道菜',pickerSearchPh:'搜索菜名或食材，如：鸡肉、カレー',
+  pickerRec:'✨ 为你们推荐（按库存和评分）',pickerAll:'全部结果',pickerAdded:'已加入 ✓',pickerNone:'没有匹配的菜，试试别的关键词',
+  pickerReadyTag:'食材齐',scanRecipeBtn:'📷 上传菜谱截图自动识别（小红书/Ins）',scanRecipeIng:'识别中…',
+  scanRecipeFail:'截图识别失败（未配置API key或图片不清晰），可改用粘贴文字',
+  adUrlXhsTip:'小红书/Ins链接常有防抓取，失败时用截图识别或复制文字最稳',buyPickTitle:'🛒 去哪里买？',buyPickSub:'选一个常用平台，之后点「去买」直接跳转（随时可换）',
   buyCurrent:p=>`下单平台：${p}`,buyChange:'更换',buyMarket:'地区',marketCn:'🇨🇳 中国平台',marketJp:'🇯🇵 日本平台',
   buyDisclosure:'※ 通过购买链接下单，本应用可能获得少量介绍费，不影响你的价格',
   buyMode:n=>`🧺 采购模式（${n} 样待买）`,exitBuyMode:'退出采购模式',
@@ -399,7 +417,12 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   nudgeSuggest:'今作れる料理を見る ›',nudgeSuggestSub:'最新の在庫からおすすめ',nudgeShopping:'買い物リストを作る ›',nudgeShoppingSub:'今週の献立と照合',
   scanAgain:'↺ もう一度スキャン',undoOver:'↺ 置き換えを取り消す',undone:'取り消しました。在庫は元に戻りました ✓',
   catVeg:'野菜',catFruit:'果物',catMeat:'肉類',catSea:'魚介',catEgg:'卵・乳製品',catBean:'大豆製品',catStaple:'主食',catSeasoning:'調味料',catOther:'その他',
-  buyGo:'購入',buyPickTitle:'🛒 どこで買いますか？',buyPickSub:'よく使うお店を選ぶと、次から「購入」で直接開きます（いつでも変更可）',
+  buyGo:'購入',
+  pickDish:'料理を選ぶ（検索/おすすめ）',pickerTitle:'料理を選ぶ',pickerSearchPh:'料理名や食材で検索（例：鶏肉、カレー）',
+  pickerRec:'✨ ふたりへのおすすめ（在庫と評価から）',pickerAll:'すべての結果',pickerAdded:'追加済み ✓',pickerNone:'見つかりません。別のキーワードをどうぞ',
+  pickerReadyTag:'材料あり',scanRecipeBtn:'📷 レシピのスクショをAI認識（RED/Insta）',scanRecipeIng:'認識中…',
+  scanRecipeFail:'認識に失敗しました（APIキー未設定または画像不鮮明）。テキスト貼り付けをお試しください',
+  adUrlXhsTip:'RED/InstagramのURLは取得できないことが多いです。スクショ認識かテキスト貼り付けが確実です',buyPickTitle:'🛒 どこで買いますか？',buyPickSub:'よく使うお店を選ぶと、次から「購入」で直接開きます（いつでも変更可）',
   buyCurrent:p=>`購入先：${p}`,buyChange:'変更',buyMarket:'地域',marketCn:'🇨🇳 中国のお店',marketJp:'🇯🇵 日本のお店',
   buyDisclosure:'※ リンク経由のご購入で当アプリに紹介料が入る場合があります（価格は変わりません）【PR】',
   buyMode:n=>`🧺 まとめ買いモード（残り ${n} 品）`,exitBuyMode:'まとめ買いを終了',
@@ -1124,9 +1147,8 @@ function renderPlan(){
       const ready=isReadyToCook(d,state.fridge,state.purchased);
       html+=`<span class="dish-chip ${ready?'ready':''}">${d.emoji} ${dishName(d)}${ready?' ✅':''}<span class="rm" onclick="removeDish('${day}','${meal}','${id}')">✕</span></span>`;
     });
-    html+=`<div class="flex" style="margin-top:6px">
-      <select id="sel-${meal}" class="grow">${allDishes().map(d=>`<option value="${d.id}">${d.emoji} ${dishName(d)}（${cuisineName(d.cuisine)}·★${avgRating(d.id).toFixed(1)}）</option>`).join('')}</select>
-      <button class="btn small" onclick="addDish('${day}','${meal}')">${tr('add')}</button></div></div>`;
+    html+=`<div style="margin-top:6px">
+      <button class="btn ghost small" style="width:100%" onclick="openPicker('${day}','${meal}')">＋ ${tr('pickDish')}</button></div></div>`;
   });
   html+=`<p class="muted" style="margin-top:8px">${tr('readyNote')}</p></div>`;
 
@@ -1143,8 +1165,10 @@ function renderPlan(){
 function setDay(d){state.activeDay=d;renderPlan();}
 function shiftWeek(n){state.viewWeek=addDaysISO(state.viewWeek,n*7);renderPlan();}
 function goThisWeek(){state.viewWeek=mondayISO();renderPlan();}
-function addDish(day,meal){
-  const id=$('sel-'+meal).value;
+function addDish(day,meal,explicitId){
+  const el=explicitId?null:$('sel-'+meal);
+  const id=explicitId||(el&&el.value);
+  if(!id)return;
   const plan=viewedPlan();
   if(plan[day][meal].includes(id)){toast(tr('dupDish'));return;}
   plan[day][meal].push(id);
@@ -1484,7 +1508,12 @@ function openAddDish(){
         <input type="text" id="ad-url" placeholder="${tr('adUrlPh')}" class="grow" style="min-width:0">
         <button class="btn small" onclick="importFromUrl()">${tr('adImport')}</button>
       </div>
-      <p class="muted">${tr('adCorsTip')}</p></div>
+      <p class="muted">${tr('adCorsTip')}</p>
+      <p class="muted" style="margin-top:4px">${tr('adUrlXhsTip')}</p></div>
+    <div class="card">
+      <input type="file" accept="image/*" multiple style="display:none" id="ad-shot" onchange="scanRecipeShots(this)">
+      <button class="btn ghost" style="width:100%" onclick="document.getElementById('ad-shot').click()">${tr('scanRecipeBtn')}</button>
+      <p class="muted" id="ad-shot-status" style="margin-top:6px"></p></div>
     <div class="card">
       <textarea id="ad-text" rows="9" placeholder="${tr('adPastePh')}" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px;font-family:inherit" oninput="previewParse()"></textarea>
       <div id="ad-preview" class="muted" style="margin:8px 0"></div>
@@ -1541,6 +1570,33 @@ function previewParse(showToast){
   }
   $('ad-preview').innerHTML=html;
   return {ings,steps};
+}
+async function scanRecipeShots(input){
+  const files=Array.from(input.files||[]).slice(0,3);
+  input.value='';
+  if(!files.length)return;
+  const st=$('ad-shot-status');
+  if(st)st.textContent=tr('scanRecipeIng');
+  try{
+    const imgs=[];
+    for(const f of files)imgs.push(await compressImage(f));
+    const res=await fetch('/api/scan-recipe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imgs})});
+    const j=await res.json().catch(()=>null);
+    if(!res.ok||!j||!j.recipe)throw new Error((j&&(j.detail||j.error))||'fail');
+    const r=j.recipe;
+    if(r.name&&!$('ad-name').value)$('ad-name').value=String(r.name).slice(0,20);
+    const lines=['用料'];
+    (r.ingredients||[]).forEach(i=>lines.push(`${i.name} ${i.qty||1}${i.unit||'份'}`));
+    lines.push('做法');
+    (r.steps||[]).forEach((sp,i)=>lines.push(`${i+1}. ${sp}`));
+    $('ad-text').value=lines.join('\n');
+    previewParse();
+    if(st)st.textContent='✓';
+    toast(tr('adFetched'));
+  }catch(e){
+    if(st)st.textContent='';
+    toast(tr('scanRecipeFail'));
+  }
 }
 function saveCustomDish(){
   const name=$('ad-name').value.trim().replace(/[<>"'`]/g,'');
@@ -1838,6 +1894,70 @@ function renderScan(){
       <button class="detail-back" onclick="closeScan()">${tr('back')}</button>
       <button class="detail-back" onclick="toggleLang()">${tr('langBtn')}</button>
     </div>${body}</div>`;
+}
+
+// -- 选菜器（搜索+推荐，应对300+菜库） --
+const picker={open:false,day:null,meal:null,kw:'',cuisine:'全部'};
+function openPicker(day,meal){
+  picker.open=true;picker.day=day;picker.meal=meal;picker.kw='';picker.cuisine='全部';
+  renderPicker();$('picker').classList.add('open');
+}
+function closePicker(){picker.open=false;$('picker').classList.remove('open');renderPlan();}
+function pickerSetKw(){picker.kw=$('picker-kw').value.trim().toLowerCase();renderPickerList();}
+function pickerSetCuisine(c){
+  picker.cuisine=c;
+  renderPicker();
+  const el=$('picker-kw');if(el)el.value=picker.kw;
+  renderPickerList();
+}
+function pickerMatch(d){
+  if(picker.cuisine!=='全部'&&d.cuisine!==picker.cuisine)return false;
+  if(!picker.kw)return true;
+  const kw=picker.kw;
+  if(d.name.toLowerCase().includes(kw))return true;
+  if((d.ja||'').toLowerCase().includes(kw))return true;
+  return d.ingredients.some(i=>i.n.includes(kw)||(ING_JA[i.n]||'').toLowerCase().includes(kw));
+}
+function pickerAdd(id){
+  addDish(picker.day,picker.meal,id);
+  renderPickerList();
+}
+function pickerRowHtml(d,ready){
+  const inPlan=viewedPlan()[picker.day][picker.meal].includes(d.id);
+  return `<div class="row">
+    <span class="clickable grow" style="min-width:0" onclick="showDish('${d.id}')">${d.emoji} <b style="font-size:13px">${dishName(d)}</b>
+      <span class="tag">${cuisineName(d.cuisine)}</span>${ready?`<span class="tag green">${tr('pickerReadyTag')}</span>`:''}
+      <span class="muted">★${avgRating(d.id).toFixed(1)}</span></span>
+    ${inPlan?`<span class="muted">${tr('pickerAdded')}</span>`:`<button class="btn small" onclick="pickerAdd('${d.id}')">${tr('add')}</button>`}</div>`;
+}
+function renderPickerList(){
+  const el=$('picker-list');if(!el)return;
+  let html='';
+  const recs=recommend(state.fridge,state.purchased);
+  if(!picker.kw&&picker.cuisine==='全部'){
+    html+=`<p class="muted" style="margin:8px 4px 4px;font-weight:600">${tr('pickerRec')}</p>`;
+    recs.slice(0,8).forEach(r=>{html+=pickerRowHtml(r.dish,r.missing.length===0);});
+  }
+  html+=`<p class="muted" style="margin:12px 4px 4px;font-weight:600">${tr('pickerAll')}</p>`;
+  const readyIds=new Set(recs.filter(r=>r.missing.length===0).map(r=>r.dish.id));
+  const matched=allDishes().filter(d=>pickerMatch(d));
+  if(!matched.length)html+=`<div class="empty">${tr('pickerNone')}</div>`;
+  matched.slice(0,60).forEach(d=>{html+=pickerRowHtml(d,readyIds.has(d.id));});
+  if(matched.length>60)html+=`<p class="muted" style="text-align:center">…${matched.length-60}</p>`;
+  el.innerHTML=html;
+}
+function renderPicker(){
+  const cuisines=['全部','中餐','日餐','韩餐','西餐','其他'];
+  $('picker').innerHTML=`<div class="detail-inner">
+    <div class="flex" style="justify-content:space-between;margin-bottom:4px">
+      <button class="detail-back" onclick="closePicker()">${tr('back')}</button>
+      <button class="detail-back" onclick="toggleLang()">${tr('langBtn')}</button>
+    </div>
+    <div class="card"><h3>${tr('pickerTitle')} · ${dayName(picker.day)} ${mealName(picker.meal)}</h3>
+      <input type="text" id="picker-kw" placeholder="${tr('pickerSearchPh')}" style="width:100%;margin:8px 0" oninput="pickerSetKw()">
+      <div class="cuisine-filter">${cuisines.map(c=>`<button class="${picker.cuisine===c?'active':''}" onclick="pickerSetCuisine('${c}')">${cuisineName(c)}</button>`).join('')}</div>
+      <div id="picker-list"></div></div></div>`;
+  renderPickerList();
 }
 
 // -- 菜品详情页 --
