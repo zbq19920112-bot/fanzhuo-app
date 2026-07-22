@@ -2,7 +2,13 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#e8734a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="饭桌">
 <title>两口子的饭桌 · Demo</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -291,7 +297,7 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   putInFridge:n=>`已买的 ${n} 样放进冰箱 →`,stockedGo:'已入库，去看看哪些菜 Ready 了 ✅',
   readyNow:'✅ 现在就能做',sortNote:'按你俩的平均评分排序',noReady:'暂时没有食材齐全的菜',
   almostReady:'🛍️ 补一两样就能做',missing:'缺',ready:'Ready ✅',missN:n=>`还差 ${n} 样`,ings:'食材：',
-  synced:'🔄 对方更新了数据，已同步',resetConfirm:'确定清空所有数据并恢复demo初始状态？',
+  synced:'🔄 对方更新了数据，已同步',resetConfirm:'确定清空所有数据并恢复demo初始状态？',clearCloudConfirmLoud:'⚠️ 注意：这会清空你们【两人共享】的全部数据（菜单/冰箱/评分/自建菜），对方也会同步清空！确定吗？',
   resetDone:'已重置 ↺',steps:'👨‍🍳 做法',ingList:'🧺 食材',refTitle:'🔗 参考菜谱',refZh:'在下厨房搜索',refJa:'在Cookpad(日)搜索',
   back:'← 返回',viewRecipe:'做法 →',seasoningNote:'* 油、盐等常备调味料未列入购物清单',lack:'缺',haveIt:'✓ 有',
   addDishBtn:'➕ 添加新菜',customTag:'自创',adNamePh:'菜名，如：麻婆茄子',adSearchTip:'① 输入菜名，去菜谱网站找一篇做法',adSearchXcf:'🔍 下厨房',adSearchCkp:'🔍 Cookpad',adSearchGg:'🔍 Google',
@@ -311,6 +317,16 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   online:'🟢 在线',notJoined:'还没加入',lastSeen:t=>`最后活跃：${t}`,justNow:'刚刚',
   minsAgo:n=>`${n}分钟前`,hoursAgo:n=>`${n}小时前`,daysAgo:n=>`${n}天前`,
   meNick:'我的昵称',renamePh:'给小家起个名字',save:'保存',nickSaved:'昵称已保存 ✓',nameSaved:'家庭名已保存 ✓',
+  loading:'加载你们的数据中…',welcomeTitle:'👋 欢迎！三步开始',
+  step1:'① 冰箱有什么？',step1sub:'拍照或手动录入现有食材',step1btn:'去录入冰箱',
+  step2:'② 这周想吃什么？',step2sub:'从300道菜里搜索或看推荐',step2btn:'去排菜单',
+  step3:'③ 缺什么自动算',step3sub:'购物清单会根据菜单和冰箱生成',
+  emptyPlanDay:'这一餐还没排菜，点下面选一道 👇',emptyWeek:'本周还没有安排，快去排菜吧',
+  emptyFridgeGuide:'冰箱还是空的。拍张照片，AI帮你清点 👆',dismissTip:'知道了',
+  hintSwitchUser:'💡 两人各自登录后，顶部各自选身份记录喜好',
+  photoAdd:'📷 拍下我们做的这道菜',photoReplace:'📷 换一张',photoDel:'删除照片',
+  photoUploading:'照片上传中…',photoSaved:'照片已保存，TA也能看到 📷',photoDelDone:'照片已删除',
+  photoFail:'上传失败，请检查网络后重试',photoDelConfirm:'删除这张照片？',photoOurs:'我们的实拍',
   scanEntry:'📷 拍照识别库存（AI自动清点冰箱）',
   scanTitle:'拍下你的冰箱',scanSub:'按区域分开拍更准。可拍多张，识别后可逐项调整。',
   zoneCold:'冷藏室',zoneColdSub:'蔬菜、蛋奶、剩菜',zoneFrozen:'冷冻室',zoneFrozenSub:'肉类、速冻食品',zonePantry:'常温 / 橱柜',zonePantrySub:'主食、调料、干货',
@@ -356,7 +372,7 @@ zh:{title:'🍚 两口子的饭桌',sub:'一起决定吃什么，剩下的交给
   authPwHint:'用邮箱+密码登录。第一次使用点「注册」，注册后立即登录，不需要收邮件。',
   authPwPh:'密码（至少6位）',authLoginBtn:'登录',authSignupBtn:'注册',
   authPwShort:'密码至少6位',authPwWrong:'邮箱或密码不对',authUserExists:'这个邮箱已注册过，请直接登录',
-  authSignupOk:'注册成功，已登录 🎉',authSetPw:'设置/修改密码',authSetPwPh:'新密码（至少6位）',
+  authSignupOk:'注册成功，已登录 🎉',authNeedConfirm:'⚠️ 注册成功，但该项目开启了「邮箱确认」。请让管理员在Supabase关闭 Confirm email，或查收确认邮件后再登录。',authSetPw:'设置/修改密码',authSetPwPh:'新密码（至少6位）',
   authSetPwOk:'密码已设置，下次可直接用密码登录 ✓',authSetPwErr:'设置失败，请重试',
   hhCreate:'创建我们的小家',hhJoinPh:'输入TA给你的邀请码',hhJoin:'加入',
   hhInvite:'把这个邀请码告诉TA，让TA登录后输入：',hhMembers:n=>`成员 ${n}/2`,
@@ -377,7 +393,7 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   putInFridge:n=>`購入した ${n} 品を冷蔵庫へ →`,stockedGo:'入庫完了、Ready になった料理を見てみましょう ✅',
   readyNow:'✅ 今すぐ作れる',sortNote:'ふたりの平均評価順',noReady:'材料が揃っている料理はまだありません',
   almostReady:'🛍️ あと1〜2品で作れる',missing:'不足',ready:'Ready ✅',missN:n=>`あと ${n} 品`,ings:'材料：',
-  synced:'🔄 相手がデータを更新しました。同期済み',resetConfirm:'すべてのデータを消去して初期状態に戻しますか？',
+  synced:'🔄 相手がデータを更新しました。同期済み',resetConfirm:'すべてのデータを消去して初期状態に戻しますか？',clearCloudConfirmLoud:'⚠️ 注意：ふたり【共有】の全データ（献立/冷蔵庫/評価/オリジナル）を消去し、相手にも反映されます。よろしいですか？',
   resetDone:'リセットしました ↺',steps:'👨‍🍳 作り方',ingList:'🧺 材料',refTitle:'🔗 参考レシピ',refZh:'下厨房で検索',refJa:'Cookpadで検索',
   back:'← 戻る',viewRecipe:'作り方 →',seasoningNote:'* 油・塩などの常備調味料は買い物リストに含まれません',lack:'不足',haveIt:'✓ あり',
   addDishBtn:'➕ 新しい料理を追加',customTag:'オリジナル',adNamePh:'料理名（例：麻婆茄子）',adSearchTip:'① 料理名を入力し、レシピサイトで作り方を探す',adSearchXcf:'🔍 下厨房',adSearchCkp:'🔍 Cookpad',adSearchGg:'🔍 Google',
@@ -397,6 +413,16 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   online:'🟢 オンライン',notJoined:'未参加',lastSeen:t=>`最終アクティブ：${t}`,justNow:'たった今',
   minsAgo:n=>`${n}分前`,hoursAgo:n=>`${n}時間前`,daysAgo:n=>`${n}日前`,
   meNick:'私のニックネーム',renamePh:'おうちの名前をつける',save:'保存',nickSaved:'保存しました ✓',nameSaved:'保存しました ✓',
+  loading:'データを読み込み中…',welcomeTitle:'👋 ようこそ！3ステップで開始',
+  step1:'① 冷蔵庫に何がある？',step1sub:'写真か手動で在庫を登録',step1btn:'冷蔵庫を登録',
+  step2:'② 今週何を食べる？',step2sub:'300品から検索・おすすめ',step2btn:'献立を組む',
+  step3:'③ 足りない物は自動計算',step3sub:'買い物リストが自動で作られます',
+  emptyPlanDay:'この食事はまだ未定。下から選びましょう 👇',emptyWeek:'今週はまだ空です。献立を組みましょう',
+  emptyFridgeGuide:'冷蔵庫が空です。写真でAIがチェックします 👆',dismissTip:'閉じる',
+  hintSwitchUser:'💡 それぞれログイン後、上部で自分の役割を選んで好みを記録',
+  photoAdd:'📷 作った料理を撮って残す',photoReplace:'📷 撮り直す',photoDel:'写真を削除',
+  photoUploading:'アップロード中…',photoSaved:'保存しました。相手にも表示されます 📷',photoDelDone:'削除しました',
+  photoFail:'アップロードに失敗しました。通信環境をご確認ください',photoDelConfirm:'この写真を削除しますか？',photoOurs:'ふたりの実物写真',
   scanEntry:'📷 写真でAI在庫スキャン（冷蔵庫を自動チェック）',
   scanTitle:'冷蔵庫を撮影しましょう',scanSub:'エリアごとに撮ると精度が上がります。複数枚OK、あとで1品ずつ調整できます。',
   zoneCold:'冷蔵室',zoneColdSub:'野菜・卵乳・残り物',zoneFrozen:'冷凍室',zoneFrozenSub:'肉類・冷凍食品',zonePantry:'常温 / 棚',zonePantrySub:'主食・調味料・乾物',
@@ -442,7 +468,7 @@ ja:{title:'🍚 ふたりの食卓',sub:'何を食べるか一緒に決めて、
   authPwHint:'メール＋パスワードでログイン。初めての方は「登録」を押すとすぐログインできます（メール受信不要）。',
   authPwPh:'パスワード（6文字以上）',authLoginBtn:'ログイン',authSignupBtn:'登録',
   authPwShort:'パスワードは6文字以上です',authPwWrong:'メールまたはパスワードが違います',authUserExists:'このメールは登録済みです。ログインしてください',
-  authSignupOk:'登録完了、ログインしました 🎉',authSetPw:'パスワードを設定/変更',authSetPwPh:'新しいパスワード（6文字以上）',
+  authSignupOk:'登録完了、ログインしました 🎉',authNeedConfirm:'⚠️ 登録できましたが「メール確認」が有効です。管理者にSupabaseで Confirm email をオフにしてもらうか、確認メールから認証してください。',authSetPw:'パスワードを設定/変更',authSetPwPh:'新しいパスワード（6文字以上）',
   authSetPwOk:'設定しました。次回からパスワードでログインできます ✓',authSetPwErr:'設定に失敗しました',
   hhCreate:'ふたりのおうちを作成',hhJoinPh:'相手からもらった招待コードを入力',hhJoin:'参加',
   hhInvite:'この招待コードを相手に伝えて、ログイン後に入力してもらってください：',hhMembers:n=>`メンバー ${n}/2`,
@@ -479,12 +505,12 @@ function defaultState(){
       {n:'大米',q:5,u:'杯'},{n:'豆腐',q:1,u:'块'},{n:'洋葱',q:2,u:'个'},
       {n:'土豆',q:3,u:'个'},{n:'胡萝卜',q:2,u:'根'},{n:'味噌',q:6,u:'勺'},
       {n:'鸡腿肉',q:300,u:'g'},{n:'吐司',q:4,u:'片'}],
-    planWeeks, purchased:{}, customDishes:[],
+    planWeeks, purchased:{}, customDishes:[], dishPhotos:{},
   };
 }
 const DAYS=['周一','周二','周三','周四','周五','周六','周日'];
 const MEALS=['早餐','午餐','晚餐'];
-const SYNC_KEYS=['ratings','fridge','planWeeks','purchased','customDishes'];
+const SYNC_KEYS=['ratings','fridge','planWeeks','purchased','customDishes','dishPhotos'];
 
 const state=Object.assign({user:'me',lang:'zh',activeDay:'周一',cuisineFilter:'全部',detailDish:null,viewWeek:null},defaultState());
 state.viewWeek=mondayISO();
@@ -721,7 +747,7 @@ function cloudClient(){
 }
 function emptyLocalData(){
   state.fridge=[];state.purchased={};state.customDishes=[];state.ratings={me:{},partner:{}};
-  state.planWeeks={};
+  state.planWeeks={};state.dishPhotos={};
 }
 function cloudStatusText(){
   if(!cloud.on)return tr('cloudStatusOff');
@@ -795,10 +821,11 @@ function applyCloudTables(t){
     t.ratings.forEach(x=>{state.ratings[x.user_id===cloud.myUid?'me':'partner'][x.dish_id]=x.rating;});
   }
   if(t.custom)state.customDishes=t.custom.map(x=>Object.assign({id:x.id,custom:true},x.data));
+  if(t.photos){state.dishPhotos={};t.photos.forEach(x=>{state.dishPhotos[x.dish_id]=x.url;});}
 }
 async function cloudLoadAll(){
   const sb=cloudClient();
-  const [f,p,pu,r,cd,mb,hh]=await Promise.all([
+  const [f,p,pu,r,cd,mb,hh,ph]=await Promise.all([
     sb.from('fridge_items').select('*').eq('household_id',cloud.hid),
     sb.from('plan_entries').select('*').eq('household_id',cloud.hid),
     sb.from('purchased_items').select('*').eq('household_id',cloud.hid),
@@ -806,18 +833,25 @@ async function cloudLoadAll(){
     sb.from('custom_dishes').select('*').eq('household_id',cloud.hid),
     sb.from('household_members').select('*').eq('household_id',cloud.hid),
     sb.from('households').select('*').eq('id',cloud.hid),
+    sb.from('dish_photos').select('*').eq('household_id',cloud.hid),
   ]);
-  applyCloudTables({fridge:f.data||[],plan:p.data||[],purchased:pu.data||[],ratings:r.data||[],custom:cd.data||[],members:mb.data||[]});
+  applyCloudTables({fridge:f.data||[],plan:p.data||[],purchased:pu.data||[],ratings:r.data||[],custom:cd.data||[],members:mb.data||[],photos:ph.data||[]});
   if(hh.data&&hh.data[0])cloud.hhName=hh.data[0].name||cloud.hhName;
 }
 let refetchTimer=null;
 function cloudSubscribe(){
   const sb=cloudClient();
   const ch=sb.channel('hh-'+cloud.hid);
-  ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes','household_members'].forEach(tb=>{
+  ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes','household_members','dish_photos'].forEach(tb=>{
     ch.on('postgres_changes',{event:'*',schema:'public',table:tb,filter:'household_id=eq.'+cloud.hid},()=>{
       clearTimeout(refetchTimer);
-      refetchTimer=setTimeout(async()=>{await cloudLoadAll();renderAll();toast(tr('synced'),true);},250);
+      refetchTimer=setTimeout(async()=>{
+        await cloudLoadAll();
+        const keep={};['f-name','f-qty','f-unit','ad-name','ad-url','ad-text','nick-input','fam-input','picker-kw','auth-email','auth-pw'].forEach(id=>{const el=$(id);if(el&&el.value)keep[id]=el.value;});
+        renderAll();
+        Object.keys(keep).forEach(id=>{const el=$(id);if(el)el.value=keep[id];});
+        toast(tr('synced'),true);
+      },250);
     });
   });
   ch.subscribe();
@@ -866,7 +900,7 @@ const db={
     for(const it of items)await sb.from('fridge_items').insert({household_id:cloud.hid,n:it.n,q:it.q,u:it.u});
   });},
   clearAll(){cdb(async sb=>{
-    for(const tb of ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes'])
+    for(const tb of ['fridge_items','plan_entries','purchased_items','ratings','custom_dishes','dish_photos'])
       await sb.from(tb).delete().eq('household_id',cloud.hid);
   });},
 };
@@ -907,8 +941,10 @@ async function authPwSignup(){
     toast(tr('authSignupOk'));
     await afterAuth();
   }else{
-    // Confirm email未关闭时会走到这里（无session）
-    toast(tr('authErr'));
+    // Confirm email未关闭：注册成功但需邮箱确认。尝试直接登录，失败则给出清晰提示
+    const {data:d2}=await sb.auth.signInWithPassword({email:f.email,password:f.pw});
+    if(d2&&d2.session){cloud.session=d2.session;cloud.myUid=d2.session.user.id;toast(tr('authSignupOk'));await afterAuth();}
+    else{cloud.urlError=tr('authNeedConfirm');renderPairing();}
   }
 }
 async function authSetPassword(){
@@ -943,7 +979,7 @@ async function doLogout(){
   renderAll();openPairing();
 }
 function clearCloudData(){
-  if(typeof confirm==='function'&&!confirm(tr('clearCloudConfirm')))return;
+  if(typeof confirm==='function'&&!confirm(tr('clearCloudConfirmLoud')))return;
   emptyLocalData();
   renderAll();
   db.clearAll();
@@ -1023,7 +1059,7 @@ function renderPairing(){
       <div class="flex" style="margin:6px 0">
         <input type="text" id="nick-input" placeholder="${tr('meNick')}" value="${me&&me.display_name?String(me.display_name).replace(/"/g,''):''}" class="grow" style="min-width:0">
         <button class="btn ghost small" onclick="saveNickname()">${tr('save')}</button></div>
-      <div class="row"><span>💑 ${pt?(pt.display_name||'TA'):(tr('partnerNot'))}</span><span>${ptStatus}</span></div>
+      <div class="row"><span>💑 ${pt?(pt.display_name||tr('partner').replace(/^\S+\s/,'')):(tr('partnerNot'))}</span><span>${ptStatus}</span></div>
       <p class="muted" style="margin-top:8px">${tr('hhInvite')}</p>
       <div style="text-align:center;font-size:30px;font-weight:700;letter-spacing:4px;margin:10px 0">${cloud.invite}</div>
       <div class="flex" style="margin-top:12px">
@@ -1125,7 +1161,26 @@ function renderHeader(){
 }
 
 // -- 菜单规划页 --
+function isBlankStart(){
+  const noPlan=Object.values(state.planWeeks||{}).every(w=>DAYS.every(d=>MEALS.every(m=>(w[d][m]||[]).length===0)));
+  return state.fridge.length===0 && noPlan && (state.customDishes||[]).length===0;
+}
+function onboardingHtml(){
+  return `<div class="card" style="border-color:var(--accent)">
+    <div class="flex" style="justify-content:space-between"><h3>${tr('welcomeTitle')}</h3>
+      <span class="muted clickable" onclick="dismissTip()">${tr('dismissTip')}</span></div>
+    <div class="row clickable" onclick="switchTab('fridge')"><span class="grow"><b style="font-size:13px">${tr('step1')}</b><br><span class="muted">${tr('step1sub')}</span></span><span class="btn ghost small">${tr('step1btn')}</span></div>
+    <div class="row clickable" onclick="setDay(state.activeDay);openPicker(state.activeDay,'晚餐')"><span class="grow"><b style="font-size:13px">${tr('step2')}</b><br><span class="muted">${tr('step2sub')}</span></span><span class="btn ghost small">${tr('step2btn')}</span></div>
+    <div class="row"><span class="grow"><b style="font-size:13px">${tr('step3')}</b><br><span class="muted">${tr('step3sub')}</span></span></div>
+    <p class="muted" style="margin-top:6px">${tr('hintSwitchUser')}</p></div>`;
+}
+function dismissTip(){state.tipDismissed=true;renderAll();}
 function renderPlan(){
+  // 云端加载中：显示加载态，避免闪现空界面
+  if(cloud.on&&cloud.session&&cloud.hid&&!cloud.ready){
+    $('page-plan').innerHTML=`<div class="card" style="text-align:center;padding:40px 14px"><p class="muted">${tr('loading')}</p></div>`;
+    return;
+  }
   const day=state.activeDay;
   const cur=mondayISO();
   const isCur=state.viewWeek===cur, isPast=state.viewWeek<cur;
@@ -1144,22 +1199,31 @@ function renderPlan(){
     html+=`<div class="meal-slot"><div class="slot-title">${meal==='早餐'?'🌅':meal==='午餐'?'☀️':'🌙'} ${mealName(meal)}</div>`;
     ids.forEach(id=>{
       const d=getDish(id);
+      if(!d)return; // 防御：跳过已删除的自建菜引用
       const ready=isReadyToCook(d,state.fridge,state.purchased);
       html+=`<span class="dish-chip ${ready?'ready':''}">${d.emoji} ${dishName(d)}${ready?' ✅':''}<span class="rm" onclick="removeDish('${day}','${meal}','${id}')">✕</span></span>`;
     });
+    if(ids.filter(id=>getDish(id)).length===0)html+=`<p class="muted" style="font-size:12px;margin:2px 0 4px">${tr('emptyPlanDay')}</p>`;
     html+=`<div style="margin-top:6px">
       <button class="btn ghost small" style="width:100%" onclick="openPicker('${day}','${meal}')">＋ ${tr('pickDish')}</button></div></div>`;
   });
   html+=`<p class="muted" style="margin-top:8px">${tr('readyNote')}</p></div>`;
 
   html+=`<div class="card"><h3>${tr('weekOverview')}</h3>`;
+  let weekHas=false;
   DAYS.forEach(d=>{
-    const all=MEALS.flatMap(m=>plan[d][m]);
+    const all=MEALS.flatMap(m=>plan[d][m]).filter(id=>getDish(id));
     if(all.length){
+      weekHas=true;
       html+=`<div class="row"><span style="font-size:13px;font-weight:600">${dayName(d)}</span><span style="font-size:12px;text-align:right">${all.map(id=>getDish(id).emoji+dishName(getDish(id))).join('、')}</span></div>`;
     }
   });
+  if(!weekHas)html+=`<div class="empty">${tr('emptyWeek')}</div>`;
   html+=`</div>`;
+  // 新用户引导横幅（云端已登录且数据全空、未关闭过）
+  if(cloud.on&&cloud.hid&&isBlankStart()&&!state.tipDismissed){
+    html=onboardingHtml()+html;
+  }
   $('page-plan').innerHTML=html;
 }
 function setDay(d){state.activeDay=d;renderPlan();}
@@ -1190,7 +1254,7 @@ function renderDishes(){
   allDishes().filter(d=>state.cuisineFilter==='全部'||d.cuisine===state.cuisineFilter).forEach(d=>{
     const missing=missingFor(d,state.fridge,state.purchased);
     html+=`<div class="card">
-      <div class="flex clickable" onclick="showDish('${d.id}')"><span style="font-size:22px">${d.emoji}</span>
+      <div class="flex clickable" onclick="showDish('${d.id}')">${dishPhoto(d.id)?`<img src="${dishPhoto(d.id)}" style="width:38px;height:38px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">`:`<span style="font-size:22px">${d.emoji}</span>`}
         <div class="grow"><b style="font-size:14px">${dishName(d)}</b> <span class="tag">${cuisineName(d.cuisine)}</span>
         ${d.custom?`<span class="tag">${tr('customTag')}</span>`:''}
         ${missing.length===0?`<span class="tag green">${tr('ready')}</span>`:`<span class="tag amber">${T[state.lang].missN(missing.length)}</span>`}</div>
@@ -1207,7 +1271,7 @@ function setCuisine(c){state.cuisineFilter=c;renderDishes();}
 function renderFridge(){
   let html=`<div class="photo-hint" onclick="openScan()">${tr('scanEntry')}</div>`;
   html+=`<div class="card"><h3>${tr('stock')}(${state.fridge.length})</h3>`;
-  if(state.fridge.length===0) html+=`<div class="empty">${tr('emptyFridge')}</div>`;
+  if(state.fridge.length===0) html+=`<div class="empty">${tr('emptyFridgeGuide')}</div>`;
   state.fridge.forEach((i,idx)=>{
     html+=`<div class="row"><span>${ingName(i.n)}</span><span class="flex"><span class="muted">${i.q}${unitName(i.u)}</span><button class="btn ghost small" onclick="removeFridge(${idx})">${tr('del')}</button></span></div>`;
   });
@@ -1289,7 +1353,7 @@ function cancelBuyPicker(){state.buyPicker=null;renderShopping();}
 function changeBuyPlatform(){state.buyPlatform=null;state.buyPicker=null;saveState();renderShopping();}
 
 // -- 采购模式（多选→逐个跳转）与比价 --
-function unboughtList(){return shoppingList(currentWeekPlan(),state.fridge,state.purchased).filter(i=>!i.done);}
+function unboughtList(){return shoppingList(viewedPlan(),state.fridge,state.purchased).filter(i=>!i.done);}
 function enterBuyMode(){
   const sel={};unboughtList().forEach(i=>sel[i.n]=true);
   state.buyRun={sel,queue:null,idx:0};
@@ -1361,7 +1425,7 @@ function priceRowsHtml(n){
 
 // -- 购物清单页 --
 function renderShopping(){
-  const list=shoppingList(currentWeekPlan(),state.fridge,state.purchased);
+  const list=shoppingList(viewedPlan(),state.fridge,state.purchased);
   const done=list.filter(i=>i.done).length;
   const mkt=currentMarket();
   const plats=BUY_PLATFORMS[mkt];
@@ -1419,8 +1483,9 @@ function renderShopping(){
   }
   // ===== 常规清单 =====
   if(!state.buyRun){
-    html+=`<div class="card"><h3>${tr('toBuy')}（${done}/${list.length} ${tr('bought')}）</h3>
-      <p class="muted" style="margin-bottom:8px">${tr('autoGen')}</p>`;
+    const shopWeekLabel=state.viewWeek===mondayISO()?tr('weekThis'):(fmtMD(state.viewWeek)+'-'+fmtMD(addDaysISO(state.viewWeek,6)));
+  html+=`<div class="card"><h3>${tr('toBuy')}（${done}/${list.length} ${tr('bought')}）</h3>
+      <p class="muted" style="margin-bottom:8px">${tr('autoGen')} · <b>${shopWeekLabel}</b></p>`;
     if(list.length===0) html+=`<div class="empty">${tr('nothingToBuy')}</div>`;
     if(unbought.length>1)html+=`<button class="btn ghost" style="width:100%;margin-bottom:8px" onclick="enterBuyMode()">${T[state.lang].buyMode(unbought.length)}</button>`;
     list.forEach(i=>{
@@ -1441,7 +1506,7 @@ function togglePurchase(n){
   commit();
 }
 function stockPurchased(){
-  const list=shoppingList(currentWeekPlan(),state.fridge,{});
+  const list=shoppingList(viewedPlan(),state.fridge,{});
   const ch={updates:[],inserts:[],unmark:[]};
   list.forEach(i=>{
     if(state.purchased[i.n]){
@@ -1642,14 +1707,14 @@ function openScan(){resetScan();renderScan();$('scan').classList.add('open');}
 function closeScan(){$('scan').classList.remove('open');}
 function scanPhotoCount(){return SCAN_ZONES.reduce((s,z)=>s+scanState.zones[z].length,0);}
 // 前端压缩到1024px（控制token成本）
-function compressImage(file){
+function compressImage(file,MAX){
+  MAX=MAX||1024;
   return new Promise((resolve,reject)=>{
     if(typeof FileReader==='undefined'){reject(new Error('no FileReader'));return;}
     const fr=new FileReader();
     fr.onload=()=>{
       const img=new Image();
       img.onload=()=>{
-        const MAX=1024;
         let w=img.width,h=img.height;
         if(w>MAX||h>MAX){const k=MAX/Math.max(w,h);w=Math.round(w*k);h=Math.round(h*k);}
         const cv=document.createElement('canvas');cv.width=w;cv.height=h;
@@ -1925,7 +1990,7 @@ function pickerAdd(id){
 function pickerRowHtml(d,ready){
   const inPlan=viewedPlan()[picker.day][picker.meal].includes(d.id);
   return `<div class="row">
-    <span class="clickable grow" style="min-width:0" onclick="showDish('${d.id}')">${d.emoji} <b style="font-size:13px">${dishName(d)}</b>
+    <span class="clickable grow" style="min-width:0" onclick="showDish('${d.id}')">${dishPhoto(d.id)?`<img src="${dishPhoto(d.id)}" style="width:26px;height:26px;object-fit:cover;border-radius:7px;vertical-align:middle;border:1px solid var(--line)">`:d.emoji} <b style="font-size:13px">${dishName(d)}</b>
       <span class="tag">${cuisineName(d.cuisine)}</span>${ready?`<span class="tag green">${tr('pickerReadyTag')}</span>`:''}
       <span class="muted">★${avgRating(d.id).toFixed(1)}</span></span>
     ${inPlan?`<span class="muted">${tr('pickerAdded')}</span>`:`<button class="btn small" onclick="pickerAdd('${d.id}')">${tr('add')}</button>`}</div>`;
@@ -1960,6 +2025,56 @@ function renderPicker(){
   renderPickerList();
 }
 
+// -- 菜品照片（夫妻共享实拍参考） --
+function dishPhoto(id){return (state.dishPhotos||{})[id]||null;}
+function dataUrlToBlob(dataUrl){
+  const [meta,b64]=dataUrl.split(',');
+  const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/jpeg';
+  const bin=atob(b64);const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+async function uploadDishPhoto(dishId,input){
+  const file=(input.files||[])[0];
+  input.value='';
+  if(!file)return;
+  toast(tr('photoUploading'));
+  try{
+    const dataUrl=await compressImage(file,800);
+    if(cloud.on&&cloud.ready){
+      const sb=cloudClient();
+      const path=cloud.hid+'/'+dishId+'.jpg';
+      const {error:upErr}=await sb.storage.from('dish-photos').upload(path,dataUrlToBlob(dataUrl),{upsert:true,contentType:'image/jpeg'});
+      if(upErr)throw upErr;
+      const {data:pub}=sb.storage.from('dish-photos').getPublicUrl(path);
+      const url=(pub&&pub.publicUrl?pub.publicUrl:'')+'?v='+Date.now();
+      state.dishPhotos[dishId]=url;
+      await sb.from('dish_photos').upsert({household_id:cloud.hid,dish_id:dishId,url,updated_by:cloud.myUid});
+    }else{
+      state.dishPhotos[dishId]=dataUrl; // 本地模式：直接存本机
+    }
+    commit();
+    if(state.detailDish===dishId)renderDetail();
+    toast(tr('photoSaved'));
+  }catch(e){
+    toast(tr('photoFail'));
+  }
+}
+async function deleteDishPhoto(dishId){
+  if(typeof confirm==='function'&&!confirm(tr('photoDelConfirm')))return;
+  delete state.dishPhotos[dishId];
+  if(cloud.on&&cloud.ready){
+    try{
+      const sb=cloudClient();
+      await sb.from('dish_photos').delete().match({household_id:cloud.hid,dish_id:dishId});
+      await sb.storage.from('dish-photos').remove([cloud.hid+'/'+dishId+'.jpg']);
+    }catch(e){}
+  }
+  commit();
+  if(state.detailDish===dishId)renderDetail();
+  toast(tr('photoDelDone'));
+}
+
 // -- 菜品详情页 --
 function showDish(id){ state.detailDish=id; renderDetail(); }
 function closeDish(){ state.detailDish=null; $('detail').classList.remove('open'); }
@@ -1972,9 +2087,13 @@ function renderDetail(){
   const steps=state.lang==='ja'?(d.stepsJa||d.steps):d.steps;
   const refZhUrl='https://www.xiachufang.com/search/?keyword='+encodeURIComponent(d.name);
   const refJaUrl='https://cookpad.com/jp/search/'+encodeURIComponent(d.ja||d.name);
+  const photo=dishPhoto(d.id);
   let html=`<div class="detail-inner">
     <button class="detail-back" onclick="closeDish()">${tr('back')}</button>
-    <div class="detail-head"><div class="big">${d.emoji}</div><h2>${dishName(d)}</h2>
+    <div class="detail-head">
+    ${photo?`<div style="margin-bottom:8px"><img src="${photo}" alt="${dishName(d)}" style="width:100%;max-height:220px;object-fit:cover;border-radius:14px;border:1px solid var(--line)"><p class="muted" style="font-size:11px;margin-top:4px">📷 ${tr('photoOurs')}</p></div>`
+    :`<div class="big">${d.emoji}</div>`}
+    <h2>${dishName(d)}</h2>
       <div style="margin-top:6px"><span class="tag">${cuisineName(d.cuisine)}</span>
       ${isReadyToCook(d,state.fridge,state.purchased)?`<span class="tag green">${tr('ready')}</span>`:`<span class="tag amber">${T[state.lang].missN(missingFor(d,state.fridge,state.purchased).length)}</span>`}
       <span class="muted" style="margin-left:6px">★${avgRating(d.id).toFixed(1)}</span></div></div>
@@ -1987,6 +2106,11 @@ function renderDetail(){
   });
   html+=`<p class="muted" style="margin-top:8px">${tr('seasoningNote')}</p></div>
     <div class="card"><h3>${tr('steps')}</h3><ol class="steps-ol">${(steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol></div>
+    <div class="card" style="text-align:center">
+      <input type="file" accept="image/*" capture="environment" style="display:none" id="dp-${d.id}" onchange="uploadDishPhoto('${d.id}',this)">
+      <button class="btn ghost" onclick="document.getElementById('dp-${d.id}').click()">${photo?tr('photoReplace'):tr('photoAdd')}</button>
+      ${photo?`<button class="btn ghost" style="margin-left:8px" onclick="deleteDishPhoto('${d.id}')">${tr('photoDel')}</button>`:''}
+    </div>
     <div class="card"><h3>${tr('refTitle')}</h3>
       ${d.custom&&d.ref?`<a class="ref-link" href="${d.ref}" target="_blank" rel="noopener">${tr('refSource')}</a>`:''}
       <a class="ref-link" href="${refZhUrl}" target="_blank" rel="noopener">🇨🇳 ${tr('refZh')}</a>
@@ -2002,9 +2126,13 @@ function renderDetail(){
 
 function renderAll(){renderHeader();renderPlan();renderDishes();renderFridge();renderShopping();renderSuggest();renderDetail();}
 
+// ---- PWA：注册 service worker ----
+if(typeof navigator!=='undefined'&&'serviceWorker'in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
 // ---- 启动 ----
 loadState();
-if(CLOUD_ON){emptyLocalData();}
+if(CLOUD_ON){emptyLocalData();state.user='me';}
 else{initSync();}
 initCloud();
 renderAll();
