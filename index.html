@@ -796,12 +796,32 @@ async function initCloud(){
 async function afterAuth(){
   if(!cloud.session){cloud.ready=false;renderHeader();openPairing();return;}
   const sb=cloudClient();
-  let res;
-  try{res=await sb.rpc('my_household');}catch(e){res={data:null,error:e};}
-  if(res.error){cloud.loadError=true;renderHeader();openPairing();return;}
+  let row=null, rpcErr=null;
+  try{
+    const res=await sb.rpc('my_household');
+    if(res.error)rpcErr=res.error;
+    else{const d=res.data;row=Array.isArray(d)?d[0]:d;}
+  }catch(e){rpcErr=e;}
+  if(rpcErr){
+    // 降级：绕过RPC，直查成员表恢复绑定
+    try{
+      const m=await sb.from('household_members').select('*').eq('user_id',cloud.myUid);
+      if(m.error)throw m.error;
+      const mr=(m.data||[])[0];
+      if(mr){
+        const h=await sb.from('households').select('*').eq('id',mr.household_id);
+        if(h.error)throw h.error;
+        const hh=(h.data||[])[0];
+        if(hh)row={household_id:hh.id,invite_code:hh.invite_code,member_count:2,name:hh.name};
+      }
+      cloud.loadError=false;
+    }catch(e2){
+      cloud.loadError=true;
+      cloud.loadErrorMsg=String((rpcErr&&rpcErr.message)||rpcErr).slice(0,140);
+      renderHeader();openPairing();return;
+    }
+  }
   cloud.loadError=false;
-  const data=res.data;
-  const row=Array.isArray(data)?data[0]:data;
   if(!row){cloud.hid=null;renderHeader();openPairing();return;}
   cloud.hid=row.household_id;cloud.invite=row.invite_code;cloud.members=Number(row.member_count)||1;
   cloud.hhName=row.name||null;
@@ -975,7 +995,7 @@ async function authSetPassword(){
 async function hhCreate(){
   const sb=cloudClient();
   const {error}=await sb.rpc('create_household');
-  if(error){toast(tr('hhCodeErr'));return;}
+  if(error){toast(tr('hhCodeErr')+' ['+String(error.message||error).slice(0,90)+']');return;}
   await afterAuth();
 }
 async function hhJoin(){
@@ -1075,7 +1095,8 @@ function renderPairing(){
   }else if(cloud.loadError){
     body=`<div class="card" style="text-align:center"><h3>${tr('loadFailTitle')}</h3>
       <p class="muted" style="margin:10px 0">${tr('loadFailSub')}</p>
-      <button class="btn" style="width:100%" onclick="cloud.loadError=false;afterAuth()">${tr('retry')}</button></div>`;
+      ${cloud.loadErrorMsg?`<div class="scan-warn" style="text-align:left">🔧 ${cloud.loadErrorMsg}</div>`:''}
+      <button class="btn" style="width:100%;margin-top:8px" onclick="cloud.loadError=false;afterAuth()">${tr('retry')}</button></div>`;
   }else if(!cloud.hid){
     body=`<div class="card"><h3>${tr('cloudTitle')}</h3>
       <p class="muted" style="margin-bottom:10px">${cloud.session.user.email}</p>
